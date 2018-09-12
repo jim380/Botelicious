@@ -159,11 +159,22 @@ client.on("message", async message => {
             filter: { symbol: 'ADAU18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
+          const result_ltc = await makeRequest('GET', 'position', {
+            filter: { symbol: 'LTCU18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          const result_trx = await makeRequest('GET', 'position', {
+            filter: { symbol: 'TRXU18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
           //console.log(result_xbt);
-          console.log(result_eth);
+          console.log(result_ada);
+          //console.log(result_trx);
           message.channel.send(`---------------${result_xbt[0].symbol}---------------\nTime: ${result_xbt[0].timestamp}\nLeverage: ${result_xbt[0].leverage}x\nEntry price: $${result_xbt[0].avgEntryPrice}\nMarket price: $${result_xbt[0].markPrice}\nLiquidation price: $${result_xbt[0].liquidationPrice}\nUnrealized ROE%: ${result_xbt[0].unrealisedRoePcnt*100}%`);
           message.channel.send(`---------------${result_eth[0].symbol}---------------\nTime: ${result_eth[0].timestamp}\nLeverage: ${result_eth[0].leverage}x\nEntry price: $${result_eth[0].avgEntryPrice}\nMarket price: $${result_eth[0].markPrice}\nLiquidation price: $${result_eth[0].liquidationPrice}\nUnrealized ROE%: ${result_eth[0].unrealisedRoePcnt*100}%`);
-          message.channel.send(`---------------${result_ada[0].symbol}---------------\nTime: ${result_ada[0].timestamp}\nLeverage: ${result_ada[0].leverage}x\nEntry price: $${result_ada[0].avgEntryPrice}\nMarket price: $${result_ada[0].markPrice}\nLiquidation price: $${result_ada[0].liquidationPrice}\nUnrealized ROE%: ${result_ada[0].unrealisedRoePcnt*100}%`);
+          //message.channel.send(`---------------${result_ada[0].symbol}---------------\nTime: ${result_ada[0].timestamp}\nLeverage: ${result_ada[0].leverage}x\nEntry price: $${result_ada[0].avgEntryPrice}\nMarket price: $${result_ada[0].markPrice}\nLiquidation price: $${result_ada[0].liquidationPrice}\nUnrealized ROE%: ${result_ada[0].unrealisedRoePcnt*100}%`);
+          message.channel.send(`---------------${result_ltc[0].symbol}---------------\nTime: ${result_ltc[0].timestamp}\nLeverage: ${result_ltc[0].leverage}x\nEntry price: $${result_ltc[0].avgEntryPrice}\nMarket price: $${result_ltc[0].markPrice}\nLiquidation price: $${result_ltc[0].liquidationPrice}\nUnrealized ROE%: ${result_ltc[0].unrealisedRoePcnt*100}%`);
+          message.channel.send(`---------------${result_trx[0].symbol}---------------\nTime: ${result_trx[0].timestamp}\nLeverage: ${result_trx[0].leverage}x\nEntry price: $${result_trx[0].avgEntryPrice}\nMarket price: $${result_trx[0].markPrice}\nLiquidation price: $${result_trx[0].liquidationPrice}\nUnrealized ROE%: ${result_trx[0].unrealisedRoePcnt*100}%`);
         } catch (e) {
           console.error(e);
           };
@@ -178,7 +189,7 @@ client.on("message", async message => {
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           //console.log(result);
-          message.channel.send(`---------------${result[0].symbol}---------------\nFunding rate: ${result[0].fundingRate*100}%\nMarket price: $${result[0].markPrice}\nVolume: $${result[0].volume}\n24h Volume: $${result[0].volume24h}`);
+          message.channel.send(`---------------${result[0].symbol}---------------\nFunding rate: ${result[0].fundingRate*100}%\nMarket price: $${result[0].markPrice}`);
         } catch (e) {
           console.error(e);
           };
@@ -193,7 +204,22 @@ client.on("message", async message => {
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           //console.log(result);
-          message.channel.send(`---------------${result[0].symbol}---------------\nFunding rate: ${result[0].fundingRate*100}%\nMarket price: $${result[0].markPrice}\nVolume: $${result[0].volume}\n24h Volume: $${result[0].volume24h}`);
+          message.channel.send(`---------------${result[0].symbol}---------------\nFunding rate: ${result[0].fundingRate*100}%\nMarket price: $${result[0].markPrice}`);
+        } catch (e) {
+          console.error(e);
+          };
+      }());
+    }
+
+    if(command === "ada") {
+      (async function main() {
+        try {
+          const result = await makeRequest('GET', 'instrument', {
+            filter: { symbol: 'ADAU18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          //console.log(result);
+          message.channel.send(`---------------${result[0].symbol}---------------\nMarket price: $${result[0].markPrice}`);
         } catch (e) {
           console.error(e);
           };
