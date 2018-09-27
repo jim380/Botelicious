@@ -148,7 +148,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const result = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTUSD' },
+            filter: { symbol: 'ETHZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           console.log(result[0]);
@@ -167,8 +167,24 @@ client.on("message", async message => {
             filter: { symbol: 'XBTUSD' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
+          const xbt_z = await makeRequest('GET', 'position', {
+            filter: { symbol: 'XBTZ18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          const xbt_u = await makeRequest('GET', 'position', {
+            filter: { symbol: 'XBTU18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
           const eth_p = await makeRequest('GET', 'position', {
             filter: { symbol: 'ETHUSD' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          const eth_z = await makeRequest('GET', 'position', {
+            filter: { symbol: 'ETHZ18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          const eth_u = await makeRequest('GET', 'position', {
+            filter: { symbol: 'ETHU18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const ada_p = await makeRequest('GET', 'position', {
@@ -183,14 +199,7 @@ client.on("message", async message => {
             filter: { symbol: 'TRXU18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
-          const u18_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTU18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const z18_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
+
           const bch_p = await makeRequest('GET', 'position', {
             filter: { symbol: 'BCHU18' },
             //columns: ['currentQty', 'avgEntryPrice'],
@@ -205,9 +214,10 @@ client.on("message", async message => {
           });
           //           0    1    2    3    4    5    6    7    8    9
           //var result=[xbt, eth, ada, ltc, trx, u18, z18, bch, eos, xrp];
-          //             0      1      2      3      4      5      6      7      8      9
-          var result_p=[xbt_p, eth_p, ada_p, xrp_p, trx_p, u18_p, z18_p, bch_p, eos_p, ltc_p];
+          //             0      1      2      3      4      5      6      7      8      9      10     11     12     13
+          var result_p=[xbt_p, xbt_z, xbt_u, eth_p, eth_z, eth_u, ada_p, xrp_p, trx_p, bch_p, eos_p, ltc_p];
   //_____________________________________________________________________________
+          //--- XBTUSD ---//
           if(result_p[0][0].isOpen === true){
           var pt = "";
           pt = result_p[0][0].avgEntryPrice >= result_p[0][0].markPrice ? (result_p[0][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[0][0].unrealisedRoePcnt >0 ? "long" : "short");
@@ -215,59 +225,82 @@ client.on("message", async message => {
           //console.log(result_p[0][0]);
           message.channel.send(`---------------${result_p[0][0].symbol}---------------\n**Opening time**: ${result_p[0][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[0][0].leverage}x\n**Entry price**: $${result_p[0][0].avgEntryPrice}\n**Market price**: $${result_p[0][0].markPrice}\n**Liquidation price**: $${result_p[0][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[0][0].unrealisedRoePcnt*100}%`);
           }
-          if(result_p[1][0].isOpen === true){
-          var pt = "";
-          pt = result_p[1][0].avgEntryPrice >= result_p[1][0].markPrice ? (result_p[1][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[1][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[1][0]);
-          message.channel.send(`---------------${result_p[1][0].symbol}---------------\n**Opening time**: ${result_p[1][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[1][0].leverage}x\n**Entry price**: $${result_p[1][0].avgEntryPrice}\n**Market price**: $${result_p[1][0].markPrice}\n**Liquidation price**: $${result_p[1][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[1][0].unrealisedRoePcnt*100}%`);
-          }
+          //--- XBTU18 ---//
           if(result_p[2][0].isOpen === true){
           var pt = "";
           pt = result_p[2][0].avgEntryPrice >= result_p[2][0].markPrice ? (result_p[2][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[2][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[2][0]);
-          message.channel.send(`---------------${result_p[2][0].symbol}---------------\n**Opening time**: ${result_p[2][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[2][0].leverage}x\n**Entry price**: ₿${result_p[2][0].avgEntryPrice}\n**Market price**: ₿${result_p[2][0].markPrice}\n**Liquidation price**: ₿${result_p[2][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[2][0].unrealisedRoePcnt*100}%`);
+          message.channel.send(`---------------${result_p[2][0].symbol}---------------\n**Opening time**: ${result_p[2][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[2][0].leverage}x\n**Entry price**: $${result_p[2][0].avgEntryPrice}\n**Market price**: $${result_p[2][0].markPrice}\n**Liquidation price**: $${result_p[2][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[2][0].unrealisedRoePcnt*100}%`);
           }
+          //--- ETHUSD ---//
           if(result_p[3][0].isOpen === true){
           var pt = "";
           pt = result_p[3][0].avgEntryPrice >= result_p[3][0].markPrice ? (result_p[3][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[3][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[3][0]);
-          message.channel.send(`---------------${result_p[3][0].symbol}---------------\n**Opening time**: ${result_p[3][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[3][0].leverage}x\n**Entry price**: ₿${result_p[3][0].avgEntryPrice}\n**Market price**: ₿${result_p[3][0].markPrice}\n**Liquidation price**: ₿${result_p[3][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[3][0].unrealisedRoePcnt*100}%`);
+          message.channel.send(`---------------${result_p[3][0].symbol}---------------\n**Opening time**: ${result_p[3][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[3][0].leverage}x\n**Entry price**: $${result_p[3][0].avgEntryPrice}\n**Market price**: $${result_p[3][0].markPrice}\n**Liquidation price**: $${result_p[3][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[3][0].unrealisedRoePcnt*100}%`);
           }
-          if(result_p[4][0].isOpen === true){
-          var pt = "";
-          pt = result_p[4][0].avgEntryPrice >= result_p[4][0].markPrice ? (result_p[4][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[4][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[4][0]);
-          message.channel.send(`---------------${result_p[4][0].symbol}---------------\n**Opening time**: ${result_p[4][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[4][0].leverage}x\n**Entry price**: ₿${result_p[4][0].avgEntryPrice}\n**Market price**: ₿${result_p[4][0].markPrice}\n**Liquidation price**: ₿${result_p[4][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[4][0].unrealisedRoePcnt*100}%`);
-          }
+          //--- ETHU18 ---//
           if(result_p[5][0].isOpen === true){
           var pt = "";
           pt = result_p[5][0].avgEntryPrice >= result_p[5][0].markPrice ? (result_p[5][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[5][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[5][0]);
           message.channel.send(`---------------${result_p[5][0].symbol}---------------\n**Opening time**: ${result_p[5][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[5][0].leverage}x\n**Entry price**: ₿${result_p[5][0].avgEntryPrice}\n**Market price**: ₿${result_p[5][0].markPrice}\n**Liquidation price**: ₿${result_p[5][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[5][0].unrealisedRoePcnt*100}%`);
           }
+          //--- ADAU18 ---//
           if(result_p[6][0].isOpen === true){
           var pt = "";
           pt = result_p[6][0].avgEntryPrice >= result_p[6][0].markPrice ? (result_p[6][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[6][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[6][0]);
           message.channel.send(`---------------${result_p[6][0].symbol}---------------\n**Opening time**: ${result_p[6][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[6][0].leverage}x\n**Entry price**: ₿${result_p[6][0].avgEntryPrice}\n**Market price**: ₿${result_p[6][0].markPrice}\n**Liquidation price**: ₿${result_p[6][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[6][0].unrealisedRoePcnt*100}%`);
           }
+          //--- XRPU18 ---//
           if(result_p[7][0].isOpen === true){
           var pt = "";
           pt = result_p[7][0].avgEntryPrice >= result_p[7][0].markPrice ? (result_p[7][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[7][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[7][0]);
           message.channel.send(`---------------${result_p[7][0].symbol}---------------\n**Opening time**: ${result_p[7][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[7][0].leverage}x\n**Entry price**: ₿${result_p[7][0].avgEntryPrice}\n**Market price**: ₿${result_p[7][0].markPrice}\n**Liquidation price**: ₿${result_p[7][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[7][0].unrealisedRoePcnt*100}%`);
           }
+          //--- TRXU18 ---//
           if(result_p[8][0].isOpen === true){
           var pt = "";
           pt = result_p[8][0].avgEntryPrice >= result_p[8][0].markPrice ? (result_p[8][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[8][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[8][0]);
           message.channel.send(`---------------${result_p[8][0].symbol}---------------\n**Opening time**: ${result_p[8][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[8][0].leverage}x\n**Entry price**: ₿${result_p[8][0].avgEntryPrice}\n**Market price**: ₿${result_p[8][0].markPrice}\n**Liquidation price**: ₿${result_p[8][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[8][0].unrealisedRoePcnt*100}%`);
           }
+          //--- BCHU18 ---//
           if(result_p[9][0].isOpen === true){
           var pt = "";
           pt = result_p[9][0].avgEntryPrice >= result_p[9][0].markPrice ? (result_p[9][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[9][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[9][0]);
           message.channel.send(`---------------${result_p[9][0].symbol}---------------\n**Opening time**: ${result_p[9][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[9][0].leverage}x\n**Entry price**: ₿${result_p[9][0].avgEntryPrice}\n**Market price**: ₿${result_p[9][0].markPrice}\n**Liquidation price**: ₿${result_p[9][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[9][0].unrealisedRoePcnt*100}%`);
+          }
+          //--- XBTZ18 ---//
+          if(result_p[1][0].isOpen === true){
+          var pt = "";
+          pt = result_p[1][0].avgEntryPrice >= result_p[1][0].markPrice ? (result_p[1][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[1][0].unrealisedRoePcnt >0 ? "long" : "short");
+          //console.log(result_p[1][0]);
+          message.channel.send(`---------------${result_p[1][0].symbol}---------------\n**Opening time**: ${result_p[1][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[1][0].leverage}x\n**Entry price**: $${result_p[1][0].avgEntryPrice}\n**Market price**: $${result_p[1][0].markPrice}\n**Liquidation price**: $${result_p[1][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[1][0].unrealisedRoePcnt*100}%`);
+          }
+          //--- ETHZ18 ---//
+          if(result_p[4][0].isOpen === true){
+          var pt = "";
+          pt = result_p[4][0].avgEntryPrice >= result_p[4][0].markPrice ? (result_p[4][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[4][0].unrealisedRoePcnt >0 ? "long" : "short");
+          //console.log(result_p[4][0]);
+          message.channel.send(`---------------${result_p[4][0].symbol}---------------\n**Opening time**: ${result_p[4][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[4][0].leverage}x\n**Entry price**: ₿${result_p[4][0].avgEntryPrice}\n**Market price**: ₿${result_p[4][0].markPrice}\n**Liquidation price**: ₿${result_p[4][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[4][0].unrealisedRoePcnt*100}%`);
+          }
+          //--- EOSU18 ---//
+          if(result_p[10][0].isOpen === true){
+          var pt = "";
+          pt = result_p[10][0].avgEntryPrice >= result_p[10][0].markPrice ? (result_p[10][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[10][0].unrealisedRoePcnt >0 ? "long" : "short");
+          //console.log(result_p[9][0]);
+          message.channel.send(`---------------${result_p[10][0].symbol}---------------\n**Opening time**: ${result_p[10][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[10][0].leverage}x\n**Entry price**: ₿${result_p[10][0].avgEntryPrice}\n**Market price**: ₿${result_p[10][0].markPrice}\n**Liquidation price**: ₿${result_p[10][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[10][0].unrealisedRoePcnt*100}%`);
+          }
+          //--- LTCU18 ---//
+          if(result_p[11][0].isOpen === true){
+          var pt = "";
+          pt = result_p[11][0].avgEntryPrice >= result_p[11][0].markPrice ? (result_p[11][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[11][0].unrealisedRoePcnt >0 ? "long" : "short");
+          //console.log(result_p[9][0]);
+          message.channel.send(`---------------${result_p[11][0].symbol}---------------\n**Opening time**: ${result_p[11][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[11][0].leverage}x\n**Entry price**: ₿${result_p[11][0].avgEntryPrice}\n**Market price**: ₿${result_p[11][0].markPrice}\n**Liquidation price**: ₿${result_p[11][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[11][0].unrealisedRoePcnt*100}%`);
           }
         } catch (e) {
           console.error(e);
@@ -364,6 +397,25 @@ client.on("message", async message => {
       }());
     }
 
+    if(command === "eth.futures") {
+      (async function main() {
+        try {
+          const u18 = await makeRequest('GET', 'instrument', {
+            filter: { symbol: 'ETHU18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          const z18 = await makeRequest('GET', 'instrument', {
+            filter: { symbol: 'ETHZ18' },
+            //columns: ['currentQty', 'avgEntryPrice'],
+          });
+          message.channel.send(`---------------${u18[0].symbol}---------------\n**Market price**: ₿${u18[0].markPrice}`);
+          message.channel.send(`---------------${z18[0].symbol}---------------\n**Market price**: ₿${z18[0].markPrice}`);
+        } catch (e) {
+          console.error(e);
+          };
+      }());
+    }
+
     if(command === "bch") {
       (async function main() {
         try {
@@ -428,7 +480,7 @@ client.on("message", async message => {
   }
 
   if (command === "mex") {
-      message.channel.send(`!xbt <---> XBTUSD\n!eth <---> ETHUSD\n!xbt.futures <---> XBTU18, XBTZ18\n!ada <---> ADAU18\n!ltc <---> LTCU18\n!trx <---> TRXU18\n!bch <---> BCHU18\n!xrp <---> XRPU18\n!eos <---> EOSU18\n!shack <---> Shack's open position(s)\n!js <---> Jay's open position(s)`);
+      message.channel.send(`!xbt <---> XBTUSD\n!eth <---> ETHUSD\n!xbt.futures <---> XBTU18, XBTZ18\n!eth.futures <---> ETHU18, ETHZ18\n!ada <---> ADAU18\n!ltc <---> LTCU18\n!trx <---> TRXU18\n!bch <---> BCHU18\n!xrp <---> XRPU18\n!eos <---> EOSU18\n!shack <---> Shack's open position(s)\n!js <---> Jay's open position(s)`);
   }
 
   if(command === "say") {
