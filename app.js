@@ -38,7 +38,7 @@ client.on("guildCreate", guild => {
 });
 
 //***************************************//
-//         Bot removed from a server     //
+//        Bot removed from a server      //
 //***************************************//
 client.on("guildDelete", guild => {
   console.log(`Bot has been removed from: ${guild.name} (id: ${guild.id})`);
@@ -148,7 +148,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const result = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ETHZ18' },
+            filter: { symbol: 'ETHUSD' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           console.log(result[0]);
@@ -171,8 +171,8 @@ client.on("message", async message => {
             filter: { symbol: 'XBTZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
-          const xbt_u = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTU18' },
+          const xbt_h = await makeRequest('GET', 'position', {
+            filter: { symbol: 'XBTH19' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const eth_p = await makeRequest('GET', 'position', {
@@ -183,39 +183,36 @@ client.on("message", async message => {
             filter: { symbol: 'ETHZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
-          const eth_u = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ETHU18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
+
           const ada_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ADAU18' },
+            filter: { symbol: 'ADAZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const ltc_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'LTCU18' },
+            filter: { symbol: 'LTCZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const trx_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'TRXU18' },
+            filter: { symbol: 'TRXZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
 
           const bch_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'BCHU18' },
+            filter: { symbol: 'BCHZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const eos_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'EOSU18' },
+            filter: { symbol: 'EOSZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const xrp_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XRPU18' },
+            filter: { symbol: 'XRPZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           //           0    1    2    3    4    5    6    7    8    9
           //var result=[xbt, eth, ada, ltc, trx, u18, z18, bch, eos, xrp];
           //             0      1      2      3      4      5      6      7      8      9      10     11     12     13
-          var result_p=[xbt_p, xbt_z, xbt_u, eth_p, eth_z, eth_u, ada_p, xrp_p, trx_p, bch_p, eos_p, ltc_p];
+          var result_p=[xbt_p, xbt_z, xbt_h, eth_p, eth_z, ada_p, xrp_p, trx_p, bch_p, eos_p, ltc_p];
   //_____________________________________________________________________________
           //--- XBTUSD ---//
           if(result_p[0][0].isOpen === true){
@@ -225,13 +222,6 @@ client.on("message", async message => {
           //console.log(result_p[0][0]);
           message.channel.send(`---------------${result_p[0][0].symbol}---------------\n**Opening time**: ${result_p[0][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[0][0].leverage}x\n**Entry price**: $${result_p[0][0].avgEntryPrice}\n**Market price**: $${result_p[0][0].markPrice}\n**Liquidation price**: $${result_p[0][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[0][0].unrealisedRoePcnt*100}%`);
           }
-          //--- XBTU18 ---//
-          if(result_p[2][0].isOpen === true){
-          var pt = "";
-          pt = result_p[2][0].avgEntryPrice >= result_p[2][0].markPrice ? (result_p[2][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[2][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[2][0]);
-          message.channel.send(`---------------${result_p[2][0].symbol}---------------\n**Opening time**: ${result_p[2][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[2][0].leverage}x\n**Entry price**: $${result_p[2][0].avgEntryPrice}\n**Market price**: $${result_p[2][0].markPrice}\n**Liquidation price**: $${result_p[2][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[2][0].unrealisedRoePcnt*100}%`);
-          }
           //--- ETHUSD ---//
           if(result_p[3][0].isOpen === true){
           var pt = "";
@@ -239,35 +229,35 @@ client.on("message", async message => {
           //console.log(result_p[3][0]);
           message.channel.send(`---------------${result_p[3][0].symbol}---------------\n**Opening time**: ${result_p[3][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[3][0].leverage}x\n**Entry price**: $${result_p[3][0].avgEntryPrice}\n**Market price**: $${result_p[3][0].markPrice}\n**Liquidation price**: $${result_p[3][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[3][0].unrealisedRoePcnt*100}%`);
           }
-          //--- ETHU18 ---//
+          //--- ADAZ18 ---//
           if(result_p[5][0].isOpen === true){
           var pt = "";
           pt = result_p[5][0].avgEntryPrice >= result_p[5][0].markPrice ? (result_p[5][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[5][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[5][0]);
           message.channel.send(`---------------${result_p[5][0].symbol}---------------\n**Opening time**: ${result_p[5][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[5][0].leverage}x\n**Entry price**: ₿${result_p[5][0].avgEntryPrice}\n**Market price**: ₿${result_p[5][0].markPrice}\n**Liquidation price**: ₿${result_p[5][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[5][0].unrealisedRoePcnt*100}%`);
           }
-          //--- ADAU18 ---//
+          //--- XRPZ18 ---//
           if(result_p[6][0].isOpen === true){
           var pt = "";
           pt = result_p[6][0].avgEntryPrice >= result_p[6][0].markPrice ? (result_p[6][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[6][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[6][0]);
           message.channel.send(`---------------${result_p[6][0].symbol}---------------\n**Opening time**: ${result_p[6][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[6][0].leverage}x\n**Entry price**: ₿${result_p[6][0].avgEntryPrice}\n**Market price**: ₿${result_p[6][0].markPrice}\n**Liquidation price**: ₿${result_p[6][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[6][0].unrealisedRoePcnt*100}%`);
           }
-          //--- XRPU18 ---//
+          //--- TRXZ18 ---//
           if(result_p[7][0].isOpen === true){
           var pt = "";
           pt = result_p[7][0].avgEntryPrice >= result_p[7][0].markPrice ? (result_p[7][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[7][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[7][0]);
           message.channel.send(`---------------${result_p[7][0].symbol}---------------\n**Opening time**: ${result_p[7][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[7][0].leverage}x\n**Entry price**: ₿${result_p[7][0].avgEntryPrice}\n**Market price**: ₿${result_p[7][0].markPrice}\n**Liquidation price**: ₿${result_p[7][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[7][0].unrealisedRoePcnt*100}%`);
           }
-          //--- TRXU18 ---//
+          //--- BCHZ18 ---//
           if(result_p[8][0].isOpen === true){
           var pt = "";
           pt = result_p[8][0].avgEntryPrice >= result_p[8][0].markPrice ? (result_p[8][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[8][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[8][0]);
           message.channel.send(`---------------${result_p[8][0].symbol}---------------\n**Opening time**: ${result_p[8][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[8][0].leverage}x\n**Entry price**: ₿${result_p[8][0].avgEntryPrice}\n**Market price**: ₿${result_p[8][0].markPrice}\n**Liquidation price**: ₿${result_p[8][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[8][0].unrealisedRoePcnt*100}%`);
           }
-          //--- BCHU18 ---//
+          //--- EOSZ18 ---//
           if(result_p[9][0].isOpen === true){
           var pt = "";
           pt = result_p[9][0].avgEntryPrice >= result_p[9][0].markPrice ? (result_p[9][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[9][0].unrealisedRoePcnt >0 ? "long" : "short");
@@ -288,19 +278,19 @@ client.on("message", async message => {
           //console.log(result_p[4][0]);
           message.channel.send(`---------------${result_p[4][0].symbol}---------------\n**Opening time**: ${result_p[4][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[4][0].leverage}x\n**Entry price**: ₿${result_p[4][0].avgEntryPrice}\n**Market price**: ₿${result_p[4][0].markPrice}\n**Liquidation price**: ₿${result_p[4][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[4][0].unrealisedRoePcnt*100}%`);
           }
-          //--- EOSU18 ---//
+          //--- LTCZ18 ---//
           if(result_p[10][0].isOpen === true){
           var pt = "";
           pt = result_p[10][0].avgEntryPrice >= result_p[10][0].markPrice ? (result_p[10][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[10][0].unrealisedRoePcnt >0 ? "long" : "short");
           //console.log(result_p[9][0]);
           message.channel.send(`---------------${result_p[10][0].symbol}---------------\n**Opening time**: ${result_p[10][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[10][0].leverage}x\n**Entry price**: ₿${result_p[10][0].avgEntryPrice}\n**Market price**: ₿${result_p[10][0].markPrice}\n**Liquidation price**: ₿${result_p[10][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[10][0].unrealisedRoePcnt*100}%`);
           }
-          //--- LTCU18 ---//
-          if(result_p[11][0].isOpen === true){
+          //--- XBTH19 ---//
+          if(result_p[2][0].isOpen === true){
           var pt = "";
-          pt = result_p[11][0].avgEntryPrice >= result_p[11][0].markPrice ? (result_p[11][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[11][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[9][0]);
-          message.channel.send(`---------------${result_p[11][0].symbol}---------------\n**Opening time**: ${result_p[11][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[11][0].leverage}x\n**Entry price**: ₿${result_p[11][0].avgEntryPrice}\n**Market price**: ₿${result_p[11][0].markPrice}\n**Liquidation price**: ₿${result_p[11][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[11][0].unrealisedRoePcnt*100}%`);
+          pt = result_p[2][0].avgEntryPrice >= result_p[2][0].markPrice ? (result_p[2][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[2][0].unrealisedRoePcnt >0 ? "long" : "short");
+          //console.log(result_p[2][0]);
+          message.channel.send(`---------------${result_p[2][0].symbol}---------------\n**Opening time**: ${result_p[2][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[2][0].leverage}x\n**Entry price**: $${result_p[2][0].avgEntryPrice}\n**Market price**: $${result_p[2][0].markPrice}\n**Liquidation price**: $${result_p[2][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[2][0].unrealisedRoePcnt*100}%`);
           }
         } catch (e) {
           console.error(e);
@@ -340,7 +330,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const ada = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'ADAU18' },
+            filter: { symbol: 'ADAZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           message.channel.send(`---------------${ada[0].symbol}---------------\n**Market price**: ₿${ada[0].markPrice}`);
@@ -354,7 +344,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const ltc = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'LTCU18' },
+            filter: { symbol: 'LTCZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           message.channel.send(`---------------${ltc[0].symbol}---------------\n**Market price**: ₿${ltc[0].markPrice}`);
@@ -368,7 +358,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const trx = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'TRXU18' },
+            filter: { symbol: 'TRXZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           message.channel.send(`---------------${trx[0].symbol}---------------\n**Market price**: ₿${trx[0].markPrice}`);
@@ -381,16 +371,16 @@ client.on("message", async message => {
     if(command === "xbt.futures") {
       (async function main() {
         try {
-          const u18 = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'XBTU18' },
+          const h19 = await makeRequest('GET', 'instrument', {
+            filter: { symbol: 'XBTH19' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           const z18 = await makeRequest('GET', 'instrument', {
             filter: { symbol: 'XBTZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
-          message.channel.send(`---------------${u18[0].symbol}---------------\n**Market price**: $${u18[0].markPrice}`);
           message.channel.send(`---------------${z18[0].symbol}---------------\n**Market price**: $${z18[0].markPrice}`);
+          message.channel.send(`---------------${h19[0].symbol}---------------\n**Market price**: $${h19[0].markPrice}`);
         } catch (e) {
           console.error(e);
           };
@@ -400,15 +390,10 @@ client.on("message", async message => {
     if(command === "eth.futures") {
       (async function main() {
         try {
-          const u18 = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'ETHU18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
           const z18 = await makeRequest('GET', 'instrument', {
             filter: { symbol: 'ETHZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
-          message.channel.send(`---------------${u18[0].symbol}---------------\n**Market price**: ₿${u18[0].markPrice}`);
           message.channel.send(`---------------${z18[0].symbol}---------------\n**Market price**: ₿${z18[0].markPrice}`);
         } catch (e) {
           console.error(e);
@@ -420,7 +405,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const bch = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'BCHU18' },
+            filter: { symbol: 'BCHZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           message.channel.send(`---------------${bch[0].symbol}---------------\n**Market price**: ₿${bch[0].markPrice}`);
@@ -434,7 +419,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const eos = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'EOSU18' },
+            filter: { symbol: 'EOSZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           message.channel.send(`---------------${eos[0].symbol}---------------\n**Market price**: ₿${eos[0].markPrice}`);
@@ -448,7 +433,7 @@ client.on("message", async message => {
       (async function main() {
         try {
           const xrp = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'XRPU18' },
+            filter: { symbol: 'XRPZ18' },
             //columns: ['currentQty', 'avgEntryPrice'],
           });
           message.channel.send(`---------------${xrp[0].symbol}---------------\n**Market price**: ₿${xrp[0].markPrice}`);
@@ -480,7 +465,7 @@ client.on("message", async message => {
   }
 
   if (command === "mex") {
-      message.channel.send(`!xbt <---> XBTUSD\n!eth <---> ETHUSD\n!xbt.futures <---> XBTU18, XBTZ18\n!eth.futures <---> ETHU18, ETHZ18\n!ada <---> ADAU18\n!ltc <---> LTCU18\n!trx <---> TRXU18\n!bch <---> BCHU18\n!xrp <---> XRPU18\n!eos <---> EOSU18\n!shack <---> Shack's open position(s)\n!js <---> Jay's open position(s)`);
+      message.channel.send(`!xbt <---> XBTUSD\n!eth <---> ETHUSD\n!xbt.futures <---> XBTZ18, XBTH19\n!eth.futures <---> ETHZ18\n!ada <---> ADAZ18\n!ltc <---> LTCZ18\n!trx <---> TRXZ18\n!bch <---> BCHZ18\n!xrp <---> XRPZ18\n!eos <---> EOSZ18\n!shack <---> Shack's open position(s)\n!js <---> Jay's open position(s)`);
   }
 
   if(command === "say") {
