@@ -102,8 +102,8 @@ client.on("message", async message => {
     const fetch = require('node-fetch');
     const crypto = require('crypto');
     const qs = require('qs');
-    const apiKey = ''; 
-    const apiSecret = ''; 
+    const apiKey = '';
+    const apiSecret = '';
     function makeRequest(verb, endpoint, data = {}) {
       const apiRoot = '/api/v1/';
       const expires = new Date().getTime() + (60 * 1000);  // 1 min in the future
@@ -499,18 +499,18 @@ client.on("message", async message => {
         fetch(cosmos_node_rpc+'/dump_consensus_state')
         .then(res => res.json())
         .then(json => {
-          let prevotes = json.result.round_state.votes[0].prevotes; // 0 might be last block height, not sure yet
-          let round = json.result.round_state.votes[0].round;
+          let vote_rounds = json.result.round_state.votes;
+          for (let vote_round of vote_rounds) {  
+            let nil_prevotes = 0;
 
-          let nil_prevotes = 0;
+              for (let prevote of vote_round.prevotes) {
+                if(prevote === 'nil-Vote') {
+                  nil_prevotes++;
+                }
+              } 
+            message.channel.send(`Round: ${vote_round.round}\nVoted: ${vote_round.prevotes.length-nil_prevotes}/${vote_round.prevotes.length} - ${((vote_round.prevotes.length-nil_prevotes)/vote_round.prevotes.length*100).toFixed(2)}%\n------\n`);
+          }
 
-          for (let prevote of prevotes) {
-             if(prevote === 'nil-Vote') {
-              nil_prevotes++;
-             }
-           } 
-
-          message.channel.send(`Round: ${round}\n------\nVoted: ${prevotes.length-nil_prevotes}/${prevotes.length} - ${((prevotes.length-nil_prevotes)/prevotes.length*100).toFixed(2)}%`);
         })
         .catch(e => console.log(e));   
         break;
@@ -522,26 +522,46 @@ client.on("message", async message => {
         .catch(e => console.log(e));   
         break;
 
-
-      // parse status endpoint
-      case 'rpc status':
-        fetch(cosmos_node_rpc+'/status')
+      // parse dump_consensus_state (result.round_state.validators.validators)
+      // aka detailed info on validators
+      case 'validators power':
+        fetch(cosmos_node_rpc+'/dump_consensus_state')
         .then(res => res.json())
         // Get json from rpc, convert it to string, and format using regex
-        .then( (json) => {
-          // Regex used
-          rxp_nested_json = /":{"/g;
-          rxp_brackets = /[{}"]/g;
-          rxp_delimeter = /,/g;
-          // Apply regex
-          var json_str = JSON.stringify(json.result).replace(rxp_nested_json, "\n--------\n").replace(rxp_brackets, '').replace(rxp_delimeter,'\n');
-          message.channel.send(json_str);
+        .then((json) => {
+          let validators = json.result.round_state.validators.validators;
+          let total_voting_power = 0;
+          let i = 1;
+          for (let validator of validators) {
+            message.channel.send(`validator ${i}\naddress: ${validator.address}\nvoting power: ${validator.voting_power} stake\n---------\n`);
+            total_voting_power += Number(validator.voting_power);
+            i++;
+          }
+         message.channel.send(`Total voting power: ${total_voting_power} stake`);
         })
         .catch(e => console.log(e));  
         break; 
 
+      // parse status endpoint (result)
+      // not really usefull
+      // case 'rpc status':
+      //   fetch(cosmos_node_rpc+'/status')
+      //   .then(res => res.json())
+      //   // Get json from rpc, convert it to string, and format using regex
+      //   .then( (json) => {
+      //     // Regex used
+      //     rxp_nested_json = /":{"/g;
+      //     rxp_brackets = /[{}"]/g;
+      //     rxp_delimeter = /,/g;
+      //     // Apply regex
+      //     var json_str = JSON.stringify(json.result).replace(rxp_nested_json, "\n--------\n").replace(rxp_brackets, '').replace(rxp_delimeter,'\n');
+      //     message.channel.send(json_str);
+      //   })
+      //   .catch(e => console.log(e));  
+      //   break; 
+
       default:
-        message.channel.send('Available commands: last block, chain id, peers, validators, genesis validators, votes, rpc status');
+        message.channel.send('Available commands: last block, chain id, peers, validators, genesis validators, validators power, votes');
     }       
   }
 //-----------------------------------------------------------------------------------------//
