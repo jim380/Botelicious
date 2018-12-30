@@ -3,7 +3,6 @@ const Discord = require("discord.js");
 const got = require('got');
 const cheerio = require('cheerio');
 const { stringify } = require('querystring');
-
 //***************************************//
 //                 Client                //
 //***************************************//
@@ -14,6 +13,9 @@ const client = new Discord.Client();
 //Discord bot token and prefix.          //
 //***************************************//
 const config = require("./config.json");
+
+// Load cosmos node url, and http module
+const cosmos_node_rpc = `http://${config.cosmos_node.url}:${config.cosmos_node.rpc_port}`;
 
 //***************************************//
 //                 Reply                 //
@@ -100,8 +102,8 @@ client.on("message", async message => {
     const fetch = require('node-fetch');
     const crypto = require('crypto');
     const qs = require('qs');
-    const apiKey = 'TwqnqgxaX-YO3U4t5TRw4FoK'; //HQZ_yb3scM00n1mhcIq1QBzq
-    const apiSecret = 'tthe_RKsoq0OLDsUualkWQTzL4NAQku_YdDpcT1OWZZz_chx'; //L7QcywjA5i6x04y3F7lkD0PfLXaJys8DfKdVperGY0EKiqjP
+    const apiKey = ''; 
+    const apiSecret = ''; 
     function makeRequest(verb, endpoint, data = {}) {
       const apiRoot = '/api/v1/';
       const expires = new Date().getTime() + (60 * 1000);  // 1 min in the future
@@ -446,6 +448,107 @@ client.on("message", async message => {
 //                                         End                                             //
 //-----------------------------------------------------------------------------------------//
 
+//-----------------------------------------------------------------------------------------//
+//                                    Cosmos Node Commands                                 //
+//-----------------------------------------------------------------------------------------//   
+  if(command === "cosmos") {
+    switch (args.join(" ")) {
+      case 'last block':
+        fetch(cosmos_node_rpc+'/status')
+        .then(res => res.json())
+        .then(json => message.channel.send(json.result.sync_info.latest_block_height)) 
+        .catch(e => console.log(e));  
+        break;
+
+      case 'chain id':
+        fetch(cosmos_node_rpc+'/genesis')
+        .then(res => res.json())
+        .then(json => message.channel.send(json.result.genesis.chain_id))  
+        .catch(e => console.log(e));  
+        break;
+
+      case 'peers':
+        fetch(cosmos_node_rpc+'/net_info')
+        .then(res => res.json())
+        .then(json => message.channel.send(json.result.n_peers))
+        .catch(e => console.log(e));  
+        break; 
+
+      case 'validators':
+        fetch(cosmos_node_rpc+'/status')
+        .then(res => res.json())
+        .then(json => {
+          if (json.result.sync_info.latest_block_height == 0) {
+          // If height 0, get validators from dump_consensus_state endpoint
+            fetch(cosmos_node_rpc+'/dump_consensus_state')
+            .then(res => res.json())
+            .then(json => message.channel.send(json.result.round_state.validators.validators.length));
+          }
+          else {
+          // If height >= 0 get from validators endpoint
+            fetch(cosmos_node_rpc+'/validators?height='+json.result.sync_info.latest_block_height)
+            .then(res => res.json())
+            .then(json => message.channel.send(json.result.validators.length));
+          }
+        })
+        .catch(e => console.log(e));   
+        break;
+
+
+      case 'votes':
+        fetch(cosmos_node_rpc+'/dump_consensus_state')
+        .then(res => res.json())
+        .then(json => {
+          let prevotes = json.result.round_state.votes[0].prevotes; // 0 might be last block height, not sure yet
+          let round = json.result.round_state.votes[0].round;
+
+          let nil_prevotes = 0;
+
+          for (let prevote of prevotes) {
+             if(prevote === 'nil-Vote') {
+              nil_prevotes++;
+             }
+           } 
+
+          message.channel.send(`Round: ${round}\n------\nVoted: ${prevotes.length-nil_prevotes}/${prevotes.length} - ${((prevotes.length-nil_prevotes)/prevotes.length*100).toFixed(2)}%`);
+        })
+        .catch(e => console.log(e));   
+        break;
+
+      case 'genesis validators':
+        fetch(cosmos_node_rpc+'/genesis')
+        .then(res => res.json())
+        .then(json => message.channel.send(json.result.genesis.validators.length))
+        .catch(e => console.log(e));   
+        break;
+
+
+      // parse status endpoint
+      case 'rpc status':
+        fetch(cosmos_node_rpc+'/status')
+        .then(res => res.json())
+        // Get json from rpc, convert it to string, and format using regex
+        .then( (json) => {
+          // Regex used
+          rxp_nested_json = /":{"/g;
+          rxp_brackets = /[{}"]/g;
+          rxp_delimeter = /,/g;
+          // Apply regex
+          var json_str = JSON.stringify(json.result).replace(rxp_nested_json, "\n--------\n").replace(rxp_brackets, '').replace(rxp_delimeter,'\n');
+          message.channel.send(json_str);
+        })
+        .catch(e => console.log(e));  
+        break; 
+
+      default:
+        message.channel.send('Available commands: last block, chain id, peers, validators, genesis validators, votes, rpc status');
+    }       
+  }
+//-----------------------------------------------------------------------------------------//
+//                                       End Cosmos                                        //
+//-----------------------------------------------------------------------------------------//
+
+
 //---------------------------------------//
 //            Command examples           //
 //---------------------------------------//
@@ -546,6 +649,7 @@ client.on("message", async message => {
     const emojiList = message.guild.emojis.map(e=>e.toString()).join(" ");
     message.channel.send(emojiList);
   }
+
 
   if (command === "google") {
           //const got = require('got');

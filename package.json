@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
-    "bitmex-realtime-api": "^0.3.0",
+    "bitmex-realtime-api": "^0.4.0",
     "cheerio": "^1.0.0-rc.2",
     "discord.js": "^11.3.2",
     "got": "^9.2.1",
