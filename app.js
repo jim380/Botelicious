@@ -50,7 +50,7 @@ client.on("guildDelete", guild => {
 
 //***************************************//
 // Logs channel:                         //
-// keeps message  delete history         //
+// keeps message; delete history         //
 //***************************************//
 client.on('messageDelete', async (message) => {
   const logs = message.guild.channels.find('name', 'logs');
@@ -453,6 +453,19 @@ client.on("message", async message => {
 //-----------------------------------------------------------------------------------------//   
   if(command === "cosmos") {
     switch (args.join(" ")) {
+      case 'node info':
+        fetch(cosmos_node_rpc+'/status')
+        .then(res => res.json())
+        .then(json => message.channel.send(`**Network**: ${json.result.node_info.network}\n`
+        +`**id**: ${json.result.node_info.id}\n`
+        +`**Moniker**: ${json.result.node_info.moniker}\n`
+        +`**Address**: ${json.result.validator_info.address}\n`
+        +`**Voting Power**: ${json.result.validator_info.voting_power}\n`
+        +`**Synced up**: ${json.result.sync_info.catching_up}\n`
+        )) 
+        .catch(e => console.log(e));  
+        break;
+
       case 'last block':
         fetch(cosmos_node_rpc+'/status')
         .then(res => res.json())
@@ -465,30 +478,37 @@ client.on("message", async message => {
         .then(res => res.json())
         .then(json => message.channel.send(json.result.genesis.chain_id))  
         .catch(e => console.log(e));  
-        break;
-
-      case 'peers':
-        fetch(cosmos_node_rpc+'/net_info')
-        .then(res => res.json())
-        .then(json => message.channel.send(json.result.n_peers))
-        .catch(e => console.log(e));  
         break; 
 
       case 'validators':
         fetch(cosmos_node_rpc+'/status')
         .then(res => res.json())
         .then(json => {
-          if (json.result.sync_info.latest_block_height == 0) {
-          // If height 0, get validators from dump_consensus_state endpoint
+          let latestBlockHeight = json.result.sync_info.latest_block_height
+          if (latestBlockHeight == 0) {
+          // If height == 0, get validators from "/dump_consensus_state" ???
             fetch(cosmos_node_rpc+'/dump_consensus_state')
             .then(res => res.json())
             .then(json => message.channel.send(json.result.round_state.validators.validators.length));
           }
           else {
-          // If height >= 0 get from validators endpoint
-            fetch(cosmos_node_rpc+'/validators?height='+json.result.sync_info.latest_block_height)
+          // If height >= 0 get from "/validators?height="
+            fetch(cosmos_node_rpc+'/validators?height='+latestBlockHeight)
             .then(res => res.json())
-            .then(json => message.channel.send(json.result.validators.length));
+            .then(json => {
+              message.channel.send(`**Total Count at Block ${latestBlockHeight}**: ${json.result.validators.length}\n\u200b\n`)
+              let validators = json.result.validators; 
+              let total_voting_power = 0;
+              let i = 1;
+              for (let validator of validators) {
+                message.channel.send(`${i}.\n**Address**: ${validator.address}\n`
+                +`**Voting Power**: ${validator.voting_power}\n`
+                +`**Proposer Priority**: ${validator.proposer_priority}\n\u200b\n`);
+                total_voting_power += Number(validator.voting_power);
+                i++;
+              }
+              message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
+            });
           }
         })
         .catch(e => console.log(e));   
@@ -514,11 +534,40 @@ client.on("message", async message => {
         })
         .catch(e => console.log(e));   
         break;
+        
+      case 'peers':
+        fetch(cosmos_node_rpc+'/net_info')
+        .then(res => res.json())
+        .then(json => {
+          message.channel.send(`**Total count**: ${json.result.n_peers}\n\u200b\n`)
+          let peers = json.result.peers; 
+          let i = 1;
+          for (let peer of peers) {
+            message.channel.send(`${i}.\n**id**: ${peer.node_info.id}\n`
+            +`**Moniker**: ${peer.node_info.moniker}\n\u200b\n`);
+            i++;
+          }
+        })
+        .catch(e => console.log(e));  
+        break;
 
       case 'genesis validators':
         fetch(cosmos_node_rpc+'/genesis')
         .then(res => res.json())
-        .then(json => message.channel.send(json.result.genesis.validators.length))
+        .then(json => {
+          message.channel.send(`**Total count**: ${json.result.genesis.validators.length}\n\u200b\n`)
+          let validators = json.result.genesis.validators;
+          let total_voting_power = 0;
+          let i = 1;
+          for (let validator of validators) {
+            message.channel.send(`${i}.\n**Address**: ${validator.address}\n`
+            +`**Name**: ${validator.name}\n`
+            +`**Power**: ${validator.power}\n\u200b\n`);
+            total_voting_power += Number(validator.power);
+            i++;
+          }
+          message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
+        })
         .catch(e => console.log(e));   
         break;
 
@@ -561,7 +610,13 @@ client.on("message", async message => {
       //   break; 
 
       default:
-        message.channel.send('Available commands: last block, chain id, peers, validators, genesis validators, validators power, votes');
+        message.channel.send(`Available commands:\n\u200b\n`
+        +`**last block** - (current block height)\n`
+        +`**node info** - (node-id, address etc.)\n`
+        +`**peers** - (num. of peers and peers info)\n`
+        +`**validators** - (validators at current height)\n`
+        +`**genesis validators** - (duh)\n`
+        +`**votes** - (WIP)`);
     }       
   }
 //-----------------------------------------------------------------------------------------//
