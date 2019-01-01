@@ -456,13 +456,19 @@ client.on("message", async message => {
       case 'node info':
         fetch(cosmos_node_rpc+'/status')
         .then(res => res.json())
-        .then(json => message.channel.send(`**Network**: ${json.result.node_info.network}\n`
+        .then(json => {
+        let syncedUP = ""
+        if (json.result.sync_info.catching_up==false){
+            syncedUP = "Synced Up"
+        } else {syncedUP = "Not Synced Up"}
+        message.channel.send(`**Network**: ${json.result.node_info.network}\n`
         +`**id**: ${json.result.node_info.id}\n`
         +`**Moniker**: ${json.result.node_info.moniker}\n`
         +`**Address**: ${json.result.validator_info.address}\n`
         +`**Voting Power**: ${json.result.validator_info.voting_power}\n`
-        +`**Synced up**: ${json.result.sync_info.catching_up}\n`
-        )) 
+        +`**${syncedUP}**\n`
+        )
+        }) 
         .catch(e => console.log(e));  
         break;
 
