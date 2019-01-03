@@ -14,9 +14,6 @@ const client = new Discord.Client();
 //***************************************//
 const config = require("./config.json");
 
-// Load cosmos node url, and http module
-const cosmos_node_rpc = `http://${config.cosmos_node.url}:${config.cosmos_node.rpc_port}`;
-
 //***************************************//
 //                 Reply                 //
 //***************************************//
@@ -451,179 +448,288 @@ client.on("message", async message => {
 //-----------------------------------------------------------------------------------------//
 //                                    Cosmos Node Commands                                 //
 //-----------------------------------------------------------------------------------------//   
+  // Import custom http module
+  const HttpUtil = require('./http-util');
+  const httpUtil = new HttpUtil();
+
+  // Custom error handling
+  const handleErrors = (e) => {
+    console.log(e);
+    message.channel.send(`Ooops... something ain't right!`);
+  }
+
   if(command === "cosmos") {
-    switch (args.join(" ")) {
-      case 'node info':
-        fetch(cosmos_node_rpc+'/status')
-        .then(res => res.json())
-        .then(json => {
-        let syncedUP = ""
-        if (json.result.sync_info.catching_up==false){
-            syncedUP = "Synced Up"
-        } else {syncedUP = "Not Synced Up"}
-        message.channel.send(`**Network**: ${json.result.node_info.network}\n`
-        +`**id**: ${json.result.node_info.id}\n`
-        +`**Moniker**: ${json.result.node_info.moniker}\n`
-        +`**Address**: ${json.result.validator_info.address}\n`
-        +`**Voting Power**: ${json.result.validator_info.voting_power}\n`
-        +`**${syncedUP}**\n`
-        )
-        }) 
-        .catch(e => console.log(e));  
-        break;
+    if(args[0]+" "+args[1] == 'node info') {
+    
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/status')
+      .then(json => {
+      let syncedUP = ""
+      if (json.result.sync_info.catching_up==false){
+          syncedUP = "Synced Up"
+      } else {syncedUP = "Not Synced Up"}
+      message.channel.send(`**Network**: ${json.result.node_info.network}\n`
+      +`**id**: ${json.result.node_info.id}\n`
+      +`**Moniker**: ${json.result.node_info.moniker}\n`
+      +`**Address**: ${json.result.validator_info.address}\n`
+      +`**Voting Power**: ${json.result.validator_info.voting_power}\n`
+      +`**${syncedUP}**\n`
+      )
+      }) 
+      .catch(e => handleErrors(e));  
+    
+    } else if(args[0]+" "+args[1] == 'last block') {
+      
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/status')
+      .then(json => message.channel.send(json.result.sync_info.latest_block_height)) 
+      .catch(e => handleErrors(e));  
 
-      case 'last block':
-        fetch(cosmos_node_rpc+'/status')
-        .then(res => res.json())
-        .then(json => message.channel.send(json.result.sync_info.latest_block_height)) 
-        .catch(e => console.log(e));  
-        break;
+    } else if(args[0]+" "+args[1] == 'chain id') {
 
-      case 'chain id':
-        fetch(cosmos_node_rpc+'/genesis')
-        .then(res => res.json())
-        .then(json => message.channel.send(json.result.genesis.chain_id))  
-        .catch(e => console.log(e));  
-        break; 
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/genesis')
+      .then(json => message.channel.send(json.result.genesis.chain_id))  
+      .catch(e => handleErrors(e));  
 
-      case 'validators':
-        fetch(cosmos_node_rpc+'/status')
-        .then(res => res.json())
-        .then(json => {
-          let latestBlockHeight = json.result.sync_info.latest_block_height
-          if (latestBlockHeight == 0) {
-          // If height == 0, get validators from "/dump_consensus_state" ???
-            fetch(cosmos_node_rpc+'/dump_consensus_state')
-            .then(res => res.json())
-            .then(json => message.channel.send(json.result.round_state.validators.validators.length));
-          }
-          else {
-          // If height >= 0 get from "/validators?height="
-            fetch(cosmos_node_rpc+'/validators?height='+latestBlockHeight)
-            .then(res => res.json())
-            .then(json => {
-              message.channel.send(`**Total Count at Block ${latestBlockHeight}**: ${json.result.validators.length}\n\u200b\n`)
-              let validators = json.result.validators; 
-              let total_voting_power = 0;
-              let i = 1;
-              for (let validator of validators) {
-                message.channel.send(`${i}.\n**Address**: ${validator.address}\n`
-                +`**Voting Power**: ${validator.voting_power}\n`
-                +`**Proposer Priority**: ${validator.proposer_priority}\n\u200b\n`);
-                total_voting_power += Number(validator.voting_power);
-                i++;
+    } else if(args[0] == 'validators') {
+
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/status')
+      .then(json => {
+        let latestBlockHeight = json.result.sync_info.latest_block_height
+        if (latestBlockHeight == 0) {
+          // get validators from "/dump_consensus_state"
+          httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
+          .then(json => message.channel.send(json.result.round_state.validators.validators.length));
+        }
+        else {
+          // get validators from "/validators?height="
+          httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], `/validators?height=${latestBlockHeight}`)
+          .then(json => {
+            message.channel.send(`**Total Count at Block ${latestBlockHeight}**: ${json.result.validators.length}\n\u200b\n`)
+            let validators = json.result.validators; 
+            let total_voting_power = 0;
+            let i = 1;
+            for (let validator of validators) {
+              message.channel.send(`${i}.\n**Address**: ${validator.address}\n`
+              +`**Voting Power**: ${validator.voting_power}\n`
+              +`**Proposer Priority**: ${validator.proposer_priority}\n\u200b\n`);
+              total_voting_power += Number(validator.voting_power);
+              i++;
+            }
+            message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
+          });
+        }
+      })
+      .catch(e => handleErrors(e));   
+    
+    } else if(args[0] == 'votes') {
+
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
+      .then(json => {
+        let vote_rounds = json.result.round_state.votes;
+        for (let vote_round of vote_rounds) {  
+          let nil_prevotes = 0;
+
+            for (let prevote of vote_round.prevotes) {
+              if(prevote === 'nil-Vote') {
+                nil_prevotes++;
               }
-              message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
-            });
-          }
-        })
-        .catch(e => console.log(e));   
-        break;
+            } 
+          message.channel.send(`Round: ${vote_round.round}\nVoted: ${vote_round.prevotes.length-nil_prevotes}/${vote_round.prevotes.length} - ${((vote_round.prevotes.length-nil_prevotes)/vote_round.prevotes.length*100).toFixed(2)}%\n------\n`);
+        }
+      })
+      .catch(e => handleErrors(e));   
 
+    } else if(args[0] == 'peers') {
+    
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/net_info')
+      .then(json => {
+        message.channel.send(`**Total count**: ${json.result.n_peers}\n\u200b\n`)
+        let peers = json.result.peers; 
+        let i = 1;
+        for (let peer of peers) {
+          message.channel.send(`${i}.\n**id**: ${peer.node_info.id}\n`
+          +`**Moniker**: ${peer.node_info.moniker}\n\u200b\n`);
+          i++;
+        }
+      })
+      .catch(e => handleErrors(e));  
 
-      case 'votes':
-        fetch(cosmos_node_rpc+'/dump_consensus_state')
-        .then(res => res.json())
-        .then(json => {
-          let vote_rounds = json.result.round_state.votes;
-          for (let vote_round of vote_rounds) {  
-            let nil_prevotes = 0;
+    } else if(args[0]+" "+args[1] == 'genesis validators') {
 
-              for (let prevote of vote_round.prevotes) {
-                if(prevote === 'nil-Vote') {
-                  nil_prevotes++;
-                }
-              } 
-            message.channel.send(`Round: ${vote_round.round}\nVoted: ${vote_round.prevotes.length-nil_prevotes}/${vote_round.prevotes.length} - ${((vote_round.prevotes.length-nil_prevotes)/vote_round.prevotes.length*100).toFixed(2)}%\n------\n`);
-          }
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/genesis')
+      .then(json => {
+        message.channel.send(`**Total count**: ${json.result.genesis.validators.length}\n\u200b\n`)
+        let validators = json.result.genesis.validators;
+        let total_voting_power = 0;
+        let i = 1;
+        for (let validator of validators) {
+          message.channel.send(`${i}.\n**Address**: ${validator.address}\n`
+          +`**Name**: ${validator.name}\n`
+          +`**Power**: ${validator.power}\n\u200b\n`);
+          total_voting_power += Number(validator.power);
+          i++;
+        }
+        message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
+      })
+      .catch(e => handleErrors(e));   
 
-        })
-        .catch(e => console.log(e));   
-        break;
+    } else if(`${args[0]}" "${args[1]}` == 'validators power') {
+    // parse dump_consensus_state (result.round_state.validators.validators)
+    // aka detailed info on validators
+      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
+      // Get json from rpc, convert it to string, and format using regex
+      .then((json) => {
+        let validators = json.result.round_state.validators.validators;
+        let total_voting_power = 0;
+        let i = 1;
+        for (let validator of validators) {
+          message.channel.send(`validator ${i}\naddress: ${validator.address}\nvoting power: ${validator.voting_power} stake\n---------\n`);
+          total_voting_power += Number(validator.voting_power);
+          i++;
+        }
+       message.channel.send(`Total voting power: ${total_voting_power} stake`);
+      })
+      .catch(e => handleErrors(e));  
+
+    } else if(args[0] == 'txs') {
+
+      httpUtil.httpGetText(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
+      .then(data => {
+        // Extract data from prometheus stream
+        prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d+)/g;
+        txs = data.match(prometheus_regex);
+        // Extract values from the data
+        total_txs = txs[0].match(/\d+/g);
+        failed_txs = txs[1].match(/\d+/g);
+
+        message.channel.send(`Total transactions: ${total_txs[0]}\nFailed transactions: ${failed_txs[0]}`);
         
-      case 'peers':
-        fetch(cosmos_node_rpc+'/net_info')
-        .then(res => res.json())
+      }) 
+      .catch(e => handleErrors(e));  
+    }
+
+    // Work-in-Progress
+    // case 'txs rate':
+    //   let t = 1;
+    //   let t_max = 6;
+    //   let rates = [];
+
+    //   httpUtil.httpGetText(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
+    //   .then(data => {
+    //     // Extract data from prometheus stream
+    //     prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d+)/g;
+    //     txs = data.match(prometheus_regex);
+    //     // Extract values from the data
+    //     total_txs_0 = txs[0].match(/\d+/g)[0];
+    //     failed_txs_0 = txs[1].match(/\d+/g)[0];
+
+    //     while(t < t_max) {
+    //       setTimeout(() => {
+    //         httpUtil.httpGetText(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
+    //         .then(data => {
+    //           // Extract data from prometheus stream
+    //           prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d+)/g;
+    //           txs = data.match(prometheus_regex);
+    //           // Extract values from the data
+    //           total_txs_t = txs[0].match(/\d+/g)[0];
+    //           failed_txs_t = txs[1].match(/\d+/g)[0];
+
+    //           message.channel.send(`Total transactions 0s: ${total_txs_0}\nFailed transactions 0s: ${failed_txs_0}\nTotal transactions ${t}s: ${total_txs_t}\nFailed transactions ${t}s: ${failed_txs_t}`);
+    //           let txs_rate = ((total_txs_t-total_txs_0)/t)+((failed_txs_t-failed_txs_0)/t);
+              
+    //           rates.push(txs_rate);
+    //           message.channel.send(`Rate: ${txs_rate} tps`);
+              
+
+    //         })
+    //       }, 1000).then(t++)
+                            
+    //     }
+
+    //     let total_rates = 0
+    //     for(let i = 0; i < rates.length; i++) {
+    //       total_rates += rates[i];
+    //     }  
+    //     message.channel.send(`Avg rate: ${total_rates/rates.length} tps`);
+    //   }) 
+    //   .catch(e => handleErrors(e));  
+    //   break;
+
+    
+    else if(args[0] == 'accounts') {
+      if (args.length == 1) {
+        httpUtil.httpsGetJson(config.cosmos_node.url, config.cosmos_node.ports[2], '/keys')
         .then(json => {
-          message.channel.send(`**Total count**: ${json.result.n_peers}\n\u200b\n`)
-          let peers = json.result.peers; 
           let i = 1;
-          for (let peer of peers) {
-            message.channel.send(`${i}.\n**id**: ${peer.node_info.id}\n`
-            +`**Moniker**: ${peer.node_info.moniker}\n\u200b\n`);
+          for (let acc of json) {
+            message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
+              +`**Address**: ${acc.address}\n`
+              +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
             i++;
           }
-        })
-        .catch(e => console.log(e));  
-        break;
-
-      case 'genesis validators':
-        fetch(cosmos_node_rpc+'/genesis')
-        .then(res => res.json())
+        }) 
+        .catch(e => handleErrors(e));  
+      } else if (args.length == 2) {
+        httpUtil.httpsGetJson(args[1], config.cosmos_node.ports[2], '/keys', 3)
         .then(json => {
-          message.channel.send(`**Total count**: ${json.result.genesis.validators.length}\n\u200b\n`)
-          let validators = json.result.genesis.validators;
-          let total_voting_power = 0;
           let i = 1;
-          for (let validator of validators) {
-            message.channel.send(`${i}.\n**Address**: ${validator.address}\n`
-            +`**Name**: ${validator.name}\n`
-            +`**Power**: ${validator.power}\n\u200b\n`);
-            total_voting_power += Number(validator.power);
+          for (let acc of json) {
+            message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
+              +`**Address**: ${acc.address}\n`
+              +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
             i++;
           }
-          message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
-        })
-        .catch(e => console.log(e));   
-        break;
-
-      // parse dump_consensus_state (result.round_state.validators.validators)
-      // aka detailed info on validators
-      case 'validators power':
-        fetch(cosmos_node_rpc+'/dump_consensus_state')
-        .then(res => res.json())
-        // Get json from rpc, convert it to string, and format using regex
-        .then((json) => {
-          let validators = json.result.round_state.validators.validators;
-          let total_voting_power = 0;
+        }) 
+        .catch(e => handleErrors(e));  
+      } else if (args.length == 3) {
+        httpUtil.httpsGetJson(args[1], args[2], '/keys', 3)
+        .then(json => {
           let i = 1;
-          for (let validator of validators) {
-            message.channel.send(`validator ${i}\naddress: ${validator.address}\nvoting power: ${validator.voting_power} stake\n---------\n`);
-            total_voting_power += Number(validator.voting_power);
+          for (let acc of json) {
+            message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
+              +`**Address**: ${acc.address}\n`
+              +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
             i++;
           }
-         message.channel.send(`Total voting power: ${total_voting_power} stake`);
-        })
-        .catch(e => console.log(e));  
-        break; 
+        }) 
+        .catch(e => handleErrors(e));  
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos accounts [url] [port]");
+      }
+    }
+    // case match(/height \d*/):
+    //   message.channel.send(args[1]);
+    //   break;
+    // end Work-in-Progress
 
-      // parse status endpoint (result)
-      // not really usefull
-      // case 'rpc status':
-      //   fetch(cosmos_node_rpc+'/status')
-      //   .then(res => res.json())
-      //   // Get json from rpc, convert it to string, and format using regex
-      //   .then( (json) => {
-      //     // Regex used
-      //     rxp_nested_json = /":{"/g;
-      //     rxp_brackets = /[{}"]/g;
-      //     rxp_delimeter = /,/g;
-      //     // Apply regex
-      //     var json_str = JSON.stringify(json.result).replace(rxp_nested_json, "\n--------\n").replace(rxp_brackets, '').replace(rxp_delimeter,'\n');
-      //     message.channel.send(json_str);
-      //   })
-      //   .catch(e => console.log(e));  
-      //   break; 
+    // parse status endpoint (result)
+    // not really usefull (also outdated)
+    // case 'rpc status':
+    //   fetch(cosmos_node_rpc+'/status')
+    //   .then(res => res.json())
+    //   // Get json from rpc, convert it to string, and format using regex
+    //   .then( (json) => {
+    //     // Regex used
+    //     rxp_nested_json = /":{"/g;
+    //     rxp_brackets = /[{}"]/g;
+    //     rxp_delimeter = /,/g;
+    //     // Apply regex
+    //     var json_str = JSON.stringify(json.result).replace(rxp_nested_json, "\n--------\n").replace(rxp_brackets, '').replace(rxp_delimeter,'\n');
+    //     message.channel.send(json_str);
+    //   })
+    //   .catch(e => handleErrors(e));  
+    //   break; 
 
-      default:
-        message.channel.send(`Available commands:\n\u200b\n`
-        +`**last block** - (current block height)\n`
-        +`**node info** - (node-id, address etc.)\n`
-        +`**peers** - (num. of peers and peers info)\n`
-        +`**validators** - (validators at current height)\n`
-        +`**genesis validators** - (duh)\n`
-        +`**votes** - (WIP)`);
-    }       
+    else {
+      message.channel.send(`Available commands:\n\u200b\n`
+      +`**last block** - (current block height)\n`
+      +`**node info** - (node-id, address etc.)\n`
+      +`**peers** - (num. of peers and peers info)\n`
+      +`**validators** - (validators at current height)\n`
+      +`**genesis validators** - (duh)\n`
+      +`**votes** - (WIP)\n`
+      +`**txs** - (transactions counter)\n`
+      +`**accounts** [url] [port] - (keys *REST api on Node must be active*)`);     
+    }
   }
 //-----------------------------------------------------------------------------------------//
 //                                       End Cosmos                                        //
