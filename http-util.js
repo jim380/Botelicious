@@ -2,6 +2,10 @@
 let https = require('https');
 let http = require('http');
 
+// Adjustable parameters
+// request timeout in seconds
+const REQ_TIMEOUT = 3;
+
 // Connection over ssl is established using the following schema
 // let fs  = require('fs');
 // 
@@ -14,9 +18,9 @@ let http = require('http');
 //   cert: fs.readFileSync('cert/cert_936367665')
 // };
 
-module.exports = class httpUtil {
+module.exports = class HttpUtil {
 
-  httpsGetText(url, port, path) {
+  httpsGetText(url, port, path, req_timeout=REQ_TIMEOUT) {
     let options = {
       hostname: url,
       port: port,
@@ -26,6 +30,11 @@ module.exports = class httpUtil {
     };
     // create new promise
     return new Promise((resolve, reject) => {
+      // request timeout
+      setTimeout(() => {
+        reject(new Error(`${new Date()} - ${req_timeout}s timeout exceeded`));  
+      }, req_timeout*1000);
+
       https.request(options, (res) => {
         // response status check
         if (res.statusCode < 200 || res.statusCode > 299) {
@@ -45,7 +54,7 @@ module.exports = class httpUtil {
     });
   }
 
-  httpGetText(url, port, path) {
+  httpGetText(url, port, path, req_timeout=REQ_TIMEOUT) {
     let options = {
       hostname: url,
       port: port,
@@ -54,6 +63,11 @@ module.exports = class httpUtil {
     };
     // create new promise
     return new Promise((resolve, reject) => {
+      // request timeout
+      setTimeout(() => {
+        reject(new Error(`${new Date()} - ${req_timeout}s timeout exceeded`));  
+      }, req_timeout*1000);
+
       http.request(options, (res) => {
         // response status check
         if (res.statusCode < 200 || res.statusCode > 299) {
@@ -73,8 +87,8 @@ module.exports = class httpUtil {
     });
   }
 
-  // Example of implementing custom request timeout
-  httpsGetJson(url, port, path, req_timeout) {
+  // WiP - double check json parsing error handling
+  httpsGetJson(url, port, path, req_timeout=REQ_TIMEOUT) {
     let options = {
       hostname: url,
       port: port,
@@ -84,12 +98,10 @@ module.exports = class httpUtil {
     };
     // create new promise
     return new Promise((resolve, reject) => {
-      
-      if (typeof req_timeout == "number") {
-        setTimeout(() => {
-          reject(new Error(`${new Date()} - ${req_timeout}s timeout exceeded`));  
-        }, req_timeout*1000);
-      }
+      // request timeout
+      setTimeout(() => {
+        reject(new Error(`${new Date()} - ${req_timeout}s timeout exceeded`));  
+      }, req_timeout*1000);
 
       https.request(options, (res) => {
         // response status check
@@ -111,8 +123,8 @@ module.exports = class httpUtil {
   }
 
 
-
-  httpGetJson(url, port, path) {
+  // WiP - double check json parsing error handling
+  httpGetJson(url, port, path, req_timeout=REQ_TIMEOUT) {
     let options = {
       hostname: url,
       port: port,
@@ -121,6 +133,11 @@ module.exports = class httpUtil {
     };
     // create new promise
     return new Promise((resolve, reject) => {
+      // request timeout
+      setTimeout(() => {
+        reject(new Error(`${new Date()} - ${req_timeout}s timeout exceeded`));  
+      }, req_timeout*1000);
+ 
       http.request(options, (res) => {
         // response status check
         if (res.statusCode < 200 || res.statusCode > 299) {

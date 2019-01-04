@@ -451,22 +451,24 @@ client.on("message", async message => {
   // Import custom http module
   const HttpUtil = require('./http-util');
   const httpUtil = new HttpUtil();
-
+  
+  // Helper methods
   // Custom error handling
   const handleErrors = (e) => {
     console.log(e);
     message.channel.send(`Ooops... something ain't right!`);
   }
-
-  if(command === "cosmos") {
-    if(args[0]+" "+args[1] == 'node info') {
-    
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/status')
+  
+  // Functions to handle commands
+  const sendNodeInfo = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/status')
       .then(json => {
       let syncedUP = ""
-      if (json.result.sync_info.catching_up==false){
-          syncedUP = "Synced Up"
-      } else {syncedUP = "Not Synced Up"}
+      if (json.result.sync_info.catching_up==false) {
+        syncedUP = "Synced Up"
+      } else {
+        syncedUP = "Not Synced Up"
+      }
       message.channel.send(`**Network**: ${json.result.node_info.network}\n`
       +`**id**: ${json.result.node_info.id}\n`
       +`**Moniker**: ${json.result.node_info.moniker}\n`
@@ -476,22 +478,22 @@ client.on("message", async message => {
       )
       }) 
       .catch(e => handleErrors(e));  
-    
-    } else if(args[0]+" "+args[1] == 'last block') {
-      
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/status')
+  }
+
+  const sendLastBlock = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/status')
       .then(json => message.channel.send(json.result.sync_info.latest_block_height)) 
       .catch(e => handleErrors(e));  
+  }
 
-    } else if(args[0]+" "+args[1] == 'chain id') {
-
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/genesis')
+  const sendChainID = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/genesis')
       .then(json => message.channel.send(json.result.genesis.chain_id))  
       .catch(e => handleErrors(e));  
+  }
 
-    } else if(args[0] == 'validators') {
-
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/status')
+  const sendValidators = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/status')
       .then(json => {
         let latestBlockHeight = json.result.sync_info.latest_block_height
         if (latestBlockHeight == 0) {
@@ -501,7 +503,7 @@ client.on("message", async message => {
         }
         else {
           // get validators from "/validators?height="
-          httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], `/validators?height=${latestBlockHeight}`)
+          httpUtil.httpGetJson(url, port, `/validators?height=${latestBlockHeight}`)
           .then(json => {
             message.channel.send(`**Total Count at Block ${latestBlockHeight}**: ${json.result.validators.length}\n\u200b\n`)
             let validators = json.result.validators; 
@@ -519,10 +521,10 @@ client.on("message", async message => {
         }
       })
       .catch(e => handleErrors(e));   
-    
-    } else if(args[0] == 'votes') {
+  }
 
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
+  const sendVotes = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/dump_consensus_state')
       .then(json => {
         let vote_rounds = json.result.round_state.votes;
         for (let vote_round of vote_rounds) {  
@@ -537,10 +539,10 @@ client.on("message", async message => {
         }
       })
       .catch(e => handleErrors(e));   
+  }
 
-    } else if(args[0] == 'peers') {
-    
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/net_info')
+  const sendPeers = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/net_info')
       .then(json => {
         message.channel.send(`**Total count**: ${json.result.n_peers}\n\u200b\n`)
         let peers = json.result.peers; 
@@ -552,10 +554,10 @@ client.on("message", async message => {
         }
       })
       .catch(e => handleErrors(e));  
+  }
 
-    } else if(args[0]+" "+args[1] == 'genesis validators') {
-
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/genesis')
+  const sendGenesisValidators = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGetJson(url, port, '/genesis')
       .then(json => {
         message.channel.send(`**Total count**: ${json.result.genesis.validators.length}\n\u200b\n`)
         let validators = json.result.genesis.validators;
@@ -570,7 +572,95 @@ client.on("message", async message => {
         }
         message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
       })
-      .catch(e => handleErrors(e));   
+      .catch(e => handleErrors(e));  
+  }
+
+  // Commands
+  if(command === "cosmos" || command === "iris") {
+    
+    if(args[0]+" "+args[1] == 'node info') {
+
+      if (args.length == 2) {   
+        sendNodeInfo();
+      } else if (args.length == 3){
+        sendNodeInfo(args[2]);
+      } else if (args.length == 4){
+        sendNodeInfo(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris node info [url] [port]");
+      }
+
+    } else if(args[0]+" "+args[1] == 'last block') {
+
+      if (args.length == 2) {   
+        sendLastBlock();
+      } else if (args.length == 3){
+        sendLastBlock(args[2]);
+      } else if (args.length == 4){
+        sendLastBlock(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris last block [url] [port]");
+      }
+
+    } else if(args[0]+" "+args[1] == 'chain id') {
+
+      if (args.length == 2) {   
+        sendChainID();
+      } else if (args.length == 3){
+        sendChainID(args[2]);
+      } else if (args.length == 4){
+        sendChainID(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
+      }
+
+    } else if(args[0] == 'validators') {
+
+      if (args.length == 1) {   
+        sendValidators();
+      } else if (args.length == 2){
+        sendValidators(args[1]);
+      } else if (args.length == 3){
+        sendValidators(args[1], args[2]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris validators [url] [port]");
+      }
+    
+    } else if(args[0] == 'votes') {
+
+      if (args.length == 1) {   
+        sendVotes();
+      } else if (args.length == 2){
+        sendVotes(args[1]);
+      } else if (args.length == 3){
+        sendVotes(args[1], args[2]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris votes [url] [port]");
+      }
+
+    } else if(args[0] == 'peers') {
+
+      if (args.length == 1) {   
+        sendPeers();
+      } else if (args.length == 2){
+        sendPeers(args[1]);
+      } else if (args.length == 3){
+        sendPeers(args[1], args[2]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris peers [url] [port]");
+      }
+
+    } else if(args[0]+" "+args[1] == 'genesis validators') {
+
+      if (args.length == 2) {   
+        sendGenesisValidators();
+      } else if (args.length == 3){
+        sendGenesisValidators(args[2]);
+      } else if (args.length == 4){
+        sendGenesisValidators(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
+      } 
 
     } else if(`${args[0]}" "${args[1]}` == 'validators power') {
     // parse dump_consensus_state (result.round_state.validators.validators)
@@ -654,13 +744,13 @@ client.on("message", async message => {
     //   .catch(e => handleErrors(e));  
     //   break;
 
-    
+    // More Work-in-Progress
     else if(args[0] == 'accounts') {
       if (args.length == 1) {
-        httpUtil.httpsGetJson(config.cosmos_node.url, config.cosmos_node.ports[2], '/keys')
+        httpUtil.httpsGetText(config.cosmos_node.url, config.cosmos_node.ports[2], '/keys')
         .then(json => {
           let i = 1;
-          for (let acc of json) {
+          for (let acc of JSON.parse(json)) {
             message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
               +`**Address**: ${acc.address}\n`
               +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
@@ -669,10 +759,10 @@ client.on("message", async message => {
         }) 
         .catch(e => handleErrors(e));  
       } else if (args.length == 2) {
-        httpUtil.httpsGetJson(args[1], config.cosmos_node.ports[2], '/keys', 3)
+        httpUtil.httpsGetJson(args[1], config.cosmos_node.ports[2], '/keys')
         .then(json => {
           let i = 1;
-          for (let acc of json) {
+          for (let acc of JSON.parse(json)) {
             message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
               +`**Address**: ${acc.address}\n`
               +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
@@ -681,10 +771,10 @@ client.on("message", async message => {
         }) 
         .catch(e => handleErrors(e));  
       } else if (args.length == 3) {
-        httpUtil.httpsGetJson(args[1], args[2], '/keys', 3)
+        httpUtil.httpsGetJson(args[1], args[2], '/keys')
         .then(json => {
           let i = 1;
-          for (let acc of json) {
+          for (let acc of JSON.parse(json)) {
             message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
               +`**Address**: ${acc.address}\n`
               +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
@@ -693,7 +783,66 @@ client.on("message", async message => {
         }) 
         .catch(e => handleErrors(e));  
       } else {
-        message.channel.send("**Please use the following format**: $cosmos accounts [url] [port]");
+        message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
+      }
+    }
+
+    else if(args[0] == 'proposals') {
+      if (args.length == 1) {
+        httpUtil.httpsGetText(config.cosmos_node.url, config.cosmos_node.ports[2], '/gov/proposals')
+        .then(data => {
+          for (let prop of JSON.parse(data)) {
+            message.channel.send(`${prop.value.proposal_id}.\n**Type**: ${prop.value.proposal_type}\n`
+              +`**Title**: ${prop.value.title}\n`
+              +`**Status**: ${prop.value.proposal_status}\n`
+              +`**Description**: ${prop.value.description}\n`
+              +`**Voting Result**\n`
+              +`Yes - ${prop.value.tally_result.yes}\n`
+              +`Abstain - ${prop.value.tally_result.abstain}\n`
+              +`No - ${prop.value.tally_result.no}\n`
+              +`Veto - ${prop.value.tally_result.no_with_veto}\n`
+              +`**Submitted**: ${prop.value.submit_time}\n`
+              +`**Deposit end**: ${prop.value.deposit_end_time}\n`
+              +`**Deposit**\n`
+              +`**Denomination**: ${prop.value.total_deposit.denom}\n`
+              +`**Amount**: ${prop.value.total_deposit.amount}\n`
+              +`**Voting start**: ${prop.value.voting_start_time}\n`
+              +`**Voting end**: ${prop.value.voting_end_time}\n\u200b\n`);
+          }
+        }) 
+        .catch(e => handleErrors(e));  
+      }  else {
+        message.channel.send("**Please use the following format**: $cosmos/iris proposals");
+      }
+    }
+
+    else if(args[0]+" "+args[1] == 'mempool flush') {
+      if (args.length == 4) {
+        httpUtil.httpGetText(args[2], args[3], '/unsafe_flush_mempool')
+          .then(data => {
+            console.log(data);
+            message.channel.send(`Done!`);
+          }) 
+          .catch(e => handleErrors(e));  
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris mempool flush url port");
+      }
+    }
+
+    else if(args[0] == 'balance') {
+      if (args.length == 4) {
+        httpUtil.httpsGetText(args[1], args[2], `/bank/balances/${args[3]}`)
+          .then(json => {
+            let i = 1;
+            for (let el of JSON.parse(json)) {
+              message.channel.send(`${i}.\n**Denomination**: ${el.denom}\n`
+                +`**Amount**: ${el.amount}\n\u200b\n`);
+              i++;
+            }
+          }) 
+          .catch(e => handleErrors(e));  
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris balance url port account(in bech32)");
       }
     }
     // case match(/height \d*/):
