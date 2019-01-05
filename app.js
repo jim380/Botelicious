@@ -637,6 +637,25 @@ client.on("message", async message => {
       .catch(e => handleErrors(e));
   }
 
+  const sendBlock = (height, url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    if (height < 1) {
+      message.channel.send("Height must be positive!");
+    } else {
+      httpUtil.httpGet(url, port, `/block?height=${height}`)
+        .then(data => JSON.parse(data))
+        .then(json => {
+          if (json.error) {
+            message.channel.send(json.error.data);
+          }else {
+            message.channel.send(`**Block at height**: ${json.result.block.header.height}\n`
+              +`**Hash**: ${json.result.block_meta.block_id.hash}\n`
+              +`**Proposer**: ${json.result.block.header.proposer_address}\n\u200b\n`);
+          }
+        })
+        .catch(e => handleErrors(e));  
+    }
+  }
+
   // Commands
   if(command === "cosmos" || command === "iris") {
     
@@ -758,6 +777,16 @@ client.on("message", async message => {
         sendAccountInfo(args[1],args[2]);
       } else {
         message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
+      }
+    } else if(args[0] == 'block') {
+      if (args.length == 2) {
+        sendBlock(args[1]);
+      } else if (args.length == 3) {
+        sendBlock(args[1], args[2]);
+      } else if (args.length == 4) {
+        sendBlock(args[1], args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris block # [url] [port]");
       }
     }
 
@@ -1012,7 +1041,30 @@ client.on("message", async message => {
     message.channel.send(emojiList);
   }
 
-
+  // Temporary using ggl to avoid "collisions"
+  // WiP
+  if(command === "ggl") {
+    if (args.join(" ") < 1){
+      message.channel.send('Enter word to query!');
+    } else {
+      fetch(`https://www.google.com/search?q=${args.join("+")}`)
+        .then(res => res.text())
+        .then((text) => {
+          const divs = text.match(/<div class="g".*div>/g);
+          for (let div of divs) {
+            let temp_elem = div.match(/<cite>http.*cite>/g); // This step might be improved (also buggy rn)
+            if (temp_elem != null) {
+              // Loggin output
+              // console.log(temp_elem[0].replace(/(<\/?cite>|<b>|<\/b>|&\w*;)/g, ""));
+              message.channel.send(temp_elem[0].replace(/(<\/?cite>|<b>|<\/b>|&\w*;)/g, ""));
+            }
+          }
+        })
+        .catch(e => console.log(e));  
+    }
+  }
+  
+  // Outdated ???
   if (command === "google") {
           //const got = require('got');
           //const cheerio = require('cheerio');
