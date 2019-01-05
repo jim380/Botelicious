@@ -456,12 +456,17 @@ client.on("message", async message => {
   // Custom error handling
   const handleErrors = (e) => {
     console.log(e);
-    message.channel.send(`Ooops... something ain't right!`);
+    if (e.name == 'SyntaxError') {
+      message.channel.send(`Oops... unexpected response type!`);  
+    } else {
+      message.channel.send(`Ooops... connection issue!`);
+    }
   }
   
   // Functions to handle commands
   const sendNodeInfo = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/status')
+    httpUtil.httpGet(url, port, '/status')
+      .then(data => JSON.parse(data))
       .then(json => {
       let syncedUP = ""
       if (json.result.sync_info.catching_up==false) {
@@ -481,29 +486,34 @@ client.on("message", async message => {
   }
 
   const sendLastBlock = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/status')
+    httpUtil.httpGet(url, port, '/status')
+      .then(data => JSON.parse(data))
       .then(json => message.channel.send(json.result.sync_info.latest_block_height)) 
       .catch(e => handleErrors(e));  
   }
 
   const sendChainID = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/genesis')
+    httpUtil.httpGet(url, port, '/genesis')
+      .then(data => JSON.parse(data))
       .then(json => message.channel.send(json.result.genesis.chain_id))  
       .catch(e => handleErrors(e));  
   }
 
   const sendValidators = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/status')
+    httpUtil.httpGet(url, port, '/status')
+      .then(data => JSON.parse(data))
       .then(json => {
         let latestBlockHeight = json.result.sync_info.latest_block_height
         if (latestBlockHeight == 0) {
           // get validators from "/dump_consensus_state"
-          httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
+          httpUtil.httpGet(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
+          .then(data => JSON.parse(data))
           .then(json => message.channel.send(json.result.round_state.validators.validators.length));
         }
         else {
           // get validators from "/validators?height="
-          httpUtil.httpGetJson(url, port, `/validators?height=${latestBlockHeight}`)
+          httpUtil.httpGet(url, port, `/validators?height=${latestBlockHeight}`)
+          .then(data => JSON.parse(data))
           .then(json => {
             message.channel.send(`**Total Count at Block ${latestBlockHeight}**: ${json.result.validators.length}\n\u200b\n`)
             let validators = json.result.validators; 
@@ -524,7 +534,8 @@ client.on("message", async message => {
   }
 
   const sendVotes = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/dump_consensus_state')
+    httpUtil.httpGet(url, port, '/dump_consensus_state')
+      .then(data => JSON.parse(data))
       .then(json => {
         let vote_rounds = json.result.round_state.votes;
         for (let vote_round of vote_rounds) {  
@@ -542,7 +553,8 @@ client.on("message", async message => {
   }
 
   const sendPeers = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/net_info')
+    httpUtil.httpGet(url, port, '/net_info')
+      .then(data => JSON.parse(data))
       .then(json => {
         message.channel.send(`**Total count**: ${json.result.n_peers}\n\u200b\n`)
         let peers = json.result.peers; 
@@ -557,7 +569,8 @@ client.on("message", async message => {
   }
 
   const sendGenesisValidators = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
-    httpUtil.httpGetJson(url, port, '/genesis')
+    httpUtil.httpGet(url, port, '/genesis')
+      .then(data => JSON.parse(data))
       .then(json => {
         message.channel.send(`**Total count**: ${json.result.genesis.validators.length}\n\u200b\n`)
         let validators = json.result.genesis.validators;
@@ -573,6 +586,55 @@ client.on("message", async message => {
         message.channel.send(`**Total Voting Power**: ${total_voting_power}`);
       })
       .catch(e => handleErrors(e));  
+  }
+
+  const sendValidatorsPower = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGet(url, port, '/dump_consensus_state')
+      // Get json from rpc, convert it to string, and format using regex
+      .then(data => JSON.parse(data))
+      .then((json) => {
+        let validators = json.result.round_state.validators.validators;
+        let total_voting_power = 0;
+        let i = 1;
+        for (let validator of validators) {
+          message.channel.send(`validator ${i}\naddress: ${validator.address}\nvoting power: ${validator.voting_power} stake\n---------\n`);
+          total_voting_power += Number(validator.voting_power);
+          i++;
+        }
+       message.channel.send(`Total voting power: ${total_voting_power} stake`);
+      })
+      .catch(e => handleErrors(e));  
+  }
+
+  const sendNumberTransaction = (url = config.cosmos_node.url, port = config.cosmos_node.ports[1]) => {
+    httpUtil.httpGet(url, port, '/')
+      .then(data => {
+        // Extract data from prometheus stream
+        prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d.*)/g;
+        txs = data.match(prometheus_regex);
+        // Extract values from the data
+        total_txs = txs[0].match(/\d.*/g);
+        failed_txs = txs[1].match(/\d.*/g);
+
+        message.channel.send(`Total transactions: ${total_txs[0]}\nFailed transactions: ${failed_txs[0]}`);
+        
+      }) 
+      .catch(e => handleErrors(e));  
+  }
+
+  const sendAccountInfo  = (url = config.cosmos_node.url, port = config.cosmos_node.ports[2]) => {
+    httpUtil.httpsGet(url, port, '/keys')
+      .then(data => JSON.parse(data))
+      .then(json => {
+        let i = 1;
+        for (let acc of json) {
+          message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
+            +`**Address**: ${acc.address}\n`
+            +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
+          i++;
+        }
+      }) 
+      .catch(e => handleErrors(e));
   }
 
   // Commands
@@ -665,45 +727,49 @@ client.on("message", async message => {
     } else if(`${args[0]}" "${args[1]}` == 'validators power') {
     // parse dump_consensus_state (result.round_state.validators.validators)
     // aka detailed info on validators
-      httpUtil.httpGetJson(config.cosmos_node.url, config.cosmos_node.ports[0], '/dump_consensus_state')
-      // Get json from rpc, convert it to string, and format using regex
-      .then((json) => {
-        let validators = json.result.round_state.validators.validators;
-        let total_voting_power = 0;
-        let i = 1;
-        for (let validator of validators) {
-          message.channel.send(`validator ${i}\naddress: ${validator.address}\nvoting power: ${validator.voting_power} stake\n---------\n`);
-          total_voting_power += Number(validator.voting_power);
-          i++;
-        }
-       message.channel.send(`Total voting power: ${total_voting_power} stake`);
-      })
-      .catch(e => handleErrors(e));  
-
+      if (args.length == 2) {   
+        sendValidatorsPower();
+      } else if (args.length == 3){
+        sendValidatorsPower(args[2]);
+      } else if (args.length == 4){
+        sendValidatorsPower(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris validators power [url] [port]");
+      } 
+      
     } else if(args[0] == 'txs') {
+      if (args.length == 1) {   
+        sendNumberTransaction();
+      } else if (args.length == 2){
+        sendNumberTransaction(args[1]);
+      } else if (args.length == 3){
+        sendNumberTransaction(args[1], args[2]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris txs [url] [port]");
+      }
 
-      httpUtil.httpGetText(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
-      .then(data => {
-        // Extract data from prometheus stream
-        prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d+)/g;
-        txs = data.match(prometheus_regex);
-        // Extract values from the data
-        total_txs = txs[0].match(/\d+/g);
-        failed_txs = txs[1].match(/\d+/g);
-
-        message.channel.send(`Total transactions: ${total_txs[0]}\nFailed transactions: ${failed_txs[0]}`);
-        
-      }) 
-      .catch(e => handleErrors(e));  
+    } else if(args[0] == 'accounts') {
+      // aka keys
+      if (args.length == 1) {
+        sendAccountInfo();
+      } else if (args.length == 2) {
+        sendAccountInfo(args[1]);
+      } else if (args.length == 3) {
+        sendAccountInfo(args[1],args[2]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
+      }
     }
 
+
     // Work-in-Progress
+    // txs rate (algorithm itself, is meh...)
     // case 'txs rate':
     //   let t = 1;
     //   let t_max = 6;
     //   let rates = [];
 
-    //   httpUtil.httpGetText(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
+    //   httpUtil.httpGet(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
     //   .then(data => {
     //     // Extract data from prometheus stream
     //     prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d+)/g;
@@ -714,7 +780,7 @@ client.on("message", async message => {
 
     //     while(t < t_max) {
     //       setTimeout(() => {
-    //         httpUtil.httpGetText(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
+    //         httpUtil.httpGet(config.cosmos_node.url, config.cosmos_node.ports[1], '/')
     //         .then(data => {
     //           // Extract data from prometheus stream
     //           prometheus_regex = /(tendermint_consensus_total_txs \d+|tendermint_mempool_failed_txs \d+)/g;
@@ -744,54 +810,13 @@ client.on("message", async message => {
     //   .catch(e => handleErrors(e));  
     //   break;
 
-    // More Work-in-Progress
-    else if(args[0] == 'accounts') {
-      if (args.length == 1) {
-        httpUtil.httpsGetText(config.cosmos_node.url, config.cosmos_node.ports[2], '/keys')
-        .then(json => {
-          let i = 1;
-          for (let acc of JSON.parse(json)) {
-            message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
-              +`**Address**: ${acc.address}\n`
-              +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
-            i++;
-          }
-        }) 
-        .catch(e => handleErrors(e));  
-      } else if (args.length == 2) {
-        httpUtil.httpsGetJson(args[1], config.cosmos_node.ports[2], '/keys')
-        .then(json => {
-          let i = 1;
-          for (let acc of JSON.parse(json)) {
-            message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
-              +`**Address**: ${acc.address}\n`
-              +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
-            i++;
-          }
-        }) 
-        .catch(e => handleErrors(e));  
-      } else if (args.length == 3) {
-        httpUtil.httpsGetJson(args[1], args[2], '/keys')
-        .then(json => {
-          let i = 1;
-          for (let acc of JSON.parse(json)) {
-            message.channel.send(`${i}.\n**Name**: ${acc.name}\n`
-              +`**Address**: ${acc.address}\n`
-              +`**Public Key**: ${acc.pub_key}\n\u200b\n`);
-            i++;
-          }
-        }) 
-        .catch(e => handleErrors(e));  
-      } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
-      }
-    }
-
+    // Real Work-in-Progress
     else if(args[0] == 'proposals') {
       if (args.length == 1) {
-        httpUtil.httpsGetText(config.cosmos_node.url, config.cosmos_node.ports[2], '/gov/proposals')
-        .then(data => {
-          for (let prop of JSON.parse(data)) {
+        httpUtil.httpsGet(config.cosmos_node.url, config.cosmos_node.ports[2], '/gov/proposals')
+        .then(data => JSON.parse(data))
+        .then(json => {
+          for (let prop of json) {
             message.channel.send(`${prop.value.proposal_id}.\n**Type**: ${prop.value.proposal_type}\n`
               +`**Title**: ${prop.value.title}\n`
               +`**Status**: ${prop.value.proposal_status}\n`
@@ -818,7 +843,7 @@ client.on("message", async message => {
 
     else if(args[0]+" "+args[1] == 'mempool flush') {
       if (args.length == 4) {
-        httpUtil.httpGetText(args[2], args[3], '/unsafe_flush_mempool')
+        httpUtil.httpGet(args[2], args[3], '/unsafe_flush_mempool')
           .then(data => {
             console.log(data);
             message.channel.send(`Done!`);
@@ -831,10 +856,11 @@ client.on("message", async message => {
 
     else if(args[0] == 'balance') {
       if (args.length == 4) {
-        httpUtil.httpsGetText(args[1], args[2], `/bank/balances/${args[3]}`)
+        httpUtil.httpsGet(args[1], args[2], `/bank/balances/${args[3]}`)
+          .then(data => JSON.parse(data))
           .then(json => {
             let i = 1;
-            for (let el of JSON.parse(json)) {
+            for (let el of json) {
               message.channel.send(`${i}.\n**Denomination**: ${el.denom}\n`
                 +`**Amount**: ${el.amount}\n\u200b\n`);
               i++;
