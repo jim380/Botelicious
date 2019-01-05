@@ -552,7 +552,16 @@ client.on("message", async message => {
       .catch(e => handleErrors(e));   
   }
 
-  const sendPeers = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+  const sendPeersCount = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGet(url, port, '/net_info')
+      .then(data => JSON.parse(data))
+      .then(json => {
+        message.channel.send(`**Total count**: ${json.result.n_peers}\n\u200b\n`)
+      })
+      .catch(e => handleErrors(e));  
+  }
+
+  const sendPeersList = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
     httpUtil.httpGet(url, port, '/net_info')
       .then(data => JSON.parse(data))
       .then(json => {
@@ -616,7 +625,7 @@ client.on("message", async message => {
         total_txs = txs[0].match(/\d.*/g);
         failed_txs = txs[1].match(/\d.*/g);
 
-        message.channel.send(`Total transactions: ${total_txs[0]}\nFailed transactions: ${failed_txs[0]}`);
+        message.channel.send(`Confirmed: ${total_txs[0]}\nFailed: ${failed_txs[0]}`);
         
       }) 
       .catch(e => handleErrors(e));  
@@ -659,6 +668,7 @@ client.on("message", async message => {
   // Commands
   if(command === "cosmos" || command === "iris") {
     
+    // node indo
     if(args[0]+" "+args[1] == 'node info') {
 
       if (args.length == 2) {   
@@ -671,7 +681,10 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris node info [url] [port]");
       }
 
-    } else if(args[0]+" "+args[1] == 'last block') {
+    } 
+    
+    // last block
+    else if(args[0]+" "+args[1] == 'last block') {
 
       if (args.length == 2) {   
         sendLastBlock();
@@ -683,7 +696,9 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris last block [url] [port]");
       }
 
-    } else if(args[0]+" "+args[1] == 'chain id') {
+    } 
+    // chain id
+    else if(args[0]+" "+args[1] == 'chain id') {
 
       if (args.length == 2) {   
         sendChainID();
@@ -695,7 +710,10 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
       }
 
-    } else if(args[0] == 'validators') {
+    } 
+    
+    // validators
+    else if(args[0] == 'validators') {
 
       if (args.length == 1) {   
         sendValidators();
@@ -707,7 +725,10 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris validators [url] [port]");
       }
     
-    } else if(args[0] == 'votes') {
+    } 
+    
+    // votes
+    else if(args[0] == 'votes') {
 
       if (args.length == 1) {   
         sendVotes();
@@ -719,19 +740,40 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris votes [url] [port]");
       }
 
-    } else if(args[0] == 'peers') {
+    } 
+    
+    // peers count
+    else if(args[0]+" "+args[1] == 'peers count') {
 
-      if (args.length == 1) {   
-        sendPeers();
-      } else if (args.length == 2){
-        sendPeers(args[1]);
+      if (args.length == 2) {   
+        sendPeersCount();
       } else if (args.length == 3){
-        sendPeers(args[1], args[2]);
+        sendPeersCount(args[2]);
+      } else if (args.length == 4){
+        sendPeersCount(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris peers [url] [port]");
+        message.channel.send("**Please use the following format**: $cosmos/iris peers count [url] [port]");
       }
 
-    } else if(args[0]+" "+args[1] == 'genesis validators') {
+    } 
+
+    // peers list
+    else if(args[0]+" "+args[1] == 'peers list') {
+
+      if (args.length == 2) {   
+        sendPeersList();
+      } else if (args.length == 3){
+        sendPeersList(args[2]);
+      } else if (args.length == 4){
+        sendPeersList(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris peers list [url] [port]");
+      }
+
+    } 
+    
+    // genesis validator
+    else if(args[0]+" "+args[1] == 'genesis validators') {
 
       if (args.length == 2) {   
         sendGenesisValidators();
@@ -743,7 +785,10 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
       } 
 
-    } else if(`${args[0]}" "${args[1]}` == 'validators power') {
+    } 
+    
+    // validator power
+    else if(args[0]+" "+args[1] == 'validators power') {
     // parse dump_consensus_state (result.round_state.validators.validators)
     // aka detailed info on validators
       if (args.length == 2) {   
@@ -756,7 +801,10 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris validators power [url] [port]");
       } 
       
-    } else if(args[0] == 'txs') {
+    } 
+    
+    // txs
+    else if(args[0] == 'txs') {
       if (args.length == 1) {   
         sendNumberTransaction();
       } else if (args.length == 2){
@@ -767,7 +815,10 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris txs [url] [port]");
       }
 
-    } else if(args[0] == 'accounts') {
+    } 
+    
+    // keys
+    else if(args[0] == 'keys') {
       // aka keys
       if (args.length == 1) {
         sendAccountInfo();
@@ -778,7 +829,10 @@ client.on("message", async message => {
       } else {
         message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
       }
-    } else if(args[0] == 'block') {
+    } 
+    
+    // block
+    else if(args[0] == 'block') {
       if (args.length == 2) {
         sendBlock(args[1]);
       } else if (args.length == 3) {
@@ -869,7 +923,8 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris proposals");
       }
     }
-
+    
+    // mempool flush
     else if(args[0]+" "+args[1] == 'mempool flush') {
       if (args.length == 4) {
         httpUtil.httpGet(args[2], args[3], '/unsafe_flush_mempool')
@@ -879,10 +934,11 @@ client.on("message", async message => {
           }) 
           .catch(e => handleErrors(e));  
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris mempool flush url port");
+        message.channel.send("**Please use the following format**: $cosmos/iris mempool flush [url] [port]");
       }
     }
 
+    // balance
     else if(args[0] == 'balance') {
       if (args.length == 4) {
         httpUtil.httpsGet(args[1], args[2], `/bank/balances/${args[3]}`)
@@ -897,7 +953,7 @@ client.on("message", async message => {
           }) 
           .catch(e => handleErrors(e));  
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris balance url port account(in bech32)");
+        message.channel.send("**Please use the following format**: $cosmos/iris balance [url] [port] [address(in bech32)]");
       }
     }
     // case match(/height \d*/):
@@ -924,15 +980,24 @@ client.on("message", async message => {
     //   break; 
 
     else {
-      message.channel.send(`Available commands:\n\u200b\n`
+      message.channel.send(`Available commands:\n`
+      + `Supply [url] [port] if requesting from a differnet addr than what's speficied in config.json\n\u200b\n`
       +`**last block** - (current block height)\n`
       +`**node info** - (node-id, address etc.)\n`
-      +`**peers** - (num. of peers and peers info)\n`
+      +`**peers count** - (num. of peers)\n`
+      +`**peers list** - (list all peers)\n`
       +`**validators** - (validators at current height)\n`
       +`**genesis validators** - (duh)\n`
+      + `**block** - (hash and proposer of block X)\n`
       +`**votes** - (WIP)\n`
-      +`**txs** - (transactions counter)\n`
-      +`**accounts** [url] [port] - (keys *REST api on Node must be active*)`);     
+      +`**txs** - (confirmed/failed transaction count)\n`
+      + `\u200b\n`
+      + `The following commands require a running REST server\n`
+      + `\u200b\n`
+      +`**keys** - (available keys)\n`
+      + `**mempool flush** - (flush flush)\n`
+      + `**balance** - (account balance)\n`
+      );     
     }
   }
 //-----------------------------------------------------------------------------------------//
