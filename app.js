@@ -543,7 +543,7 @@ client.on("message", async message => {
 
             for (let prevote of vote_round.prevotes) {
               if(prevote === 'nil-Vote') {
-                nil_prevotes++;
+                nil_prevotes += 1;
               }
             } 
           message.channel.send(`Round: ${vote_round.round}\nVoted: ${vote_round.prevotes.length-nil_prevotes}/${vote_round.prevotes.length} - ${((vote_round.prevotes.length-nil_prevotes)/vote_round.prevotes.length*100).toFixed(2)}%\n------\n`);
@@ -571,7 +571,7 @@ client.on("message", async message => {
         for (let peer of peers) {
           message.channel.send(`${i}.\n**id**: ${peer.node_info.id}\n`
           +`**Moniker**: ${peer.node_info.moniker}\n\u200b\n`);
-          i++;
+          i += 1;
         }
       })
       .catch(e => handleErrors(e));  
@@ -659,10 +659,75 @@ client.on("message", async message => {
             message.channel.send(`**Block at height**: ${json.result.block.header.height}\n`
               +`**Hash**: ${json.result.block_meta.block_id.hash}\n`
               +`**Proposer**: ${json.result.block.header.proposer_address}\n\u200b\n`);
+            // Send treansactions
+            message.channel.send(`**Transactions**:\n`)
+            sendTxsAtHeight(height);
           }
         })
         .catch(e => handleErrors(e));  
     }
+  }
+
+  const sendMempoolData = (url = config.cosmos_node.url, port = config.cosmos_node.ports[1]) => {
+    httpUtil.httpGet(url, port, '/')
+      .then(data => {
+
+        // Extract data from prometheus stream
+        let prometheus_regex = /.*mempool.*\d/g;
+        let mempool_data = data.match(prometheus_regex);
+        // console.log(mempool_data);
+
+        for (let el of mempool_data) {
+          message.channel.send(el.replace(/_/g,' '));
+        }
+        
+      }) 
+      .catch(e => handleErrors(e));  
+  }
+
+  // More info here: https://tendermint.com/rpc/#tx
+  const sendTxsAtHeight = (height, url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    if (height < 1) {
+      message.channel.send("Block height must be positive!");
+    } else {
+      // TODO: per_page might be adjusted in future
+      // AFAIK max out at 100
+      httpUtil.httpGet(url, port, `/tx_search?query="tx.height>${height-1}"&per_page=30`)
+        .then(data => JSON.parse(data))
+        .then(json => {
+
+          if (json.result.txs[0] && json.result.txs[0].height == height) {
+          
+            let i = 0;
+
+            do {
+              message.channel.send(`${i+1}.\n**Tx Hash**: ${json.result.txs[i].hash}\n`
+                +`**Gas Wanted**: ${json.result.txs[i].tx_result.gasWanted}\n`
+                +`**Gas USed**: ${json.result.txs[i].tx_result.gasUsed}\n\u200b\n`);
+
+              i++;
+            } while(json.result.txs[i].height == height)
+
+          } else {
+            message.channel.send('No txs at this height!');
+          }
+        })
+        .catch(e => handleErrors(e));  
+    }
+  }
+
+  const sendTxsByHash = (hash, url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
+    httpUtil.httpGet(url, port, `/tx?hash=0x${hash}`)
+      .then(data => JSON.parse(data))
+      .then(json => {
+        if (json.error) {
+          message.channel.send(json.error.data);
+        } else {
+          message.channel.send(`**Gas wanted**: ${json.result.tx_result.gasWanted}\n`
+            +`**Gas used**: ${json.result.tx_result.gasUsed}\n\u200b\n`);
+        }
+      })
+      .catch(e => handleErrors(e));  
   }
 
   // Commands
@@ -710,6 +775,22 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
       }
 
+    } 
+
+    // validator power
+    else if(args[0]+" "+args[1] == 'validators power') {
+    // parse dump_consensus_state (result.round_state.validators.validators)
+    // aka detailed info on validators
+      if (args.length == 2) {   
+        sendValidatorsPower();
+      } else if (args.length == 3){
+        sendValidatorsPower(args[2]);
+      } else if (args.length == 4){
+        sendValidatorsPower(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris validators power [url] [port]");
+      } 
+      
     } 
     
     // validators
@@ -786,36 +867,48 @@ client.on("message", async message => {
       } 
 
     } 
-    
-    // validator power
-    else if(args[0]+" "+args[1] == 'validators power') {
-    // parse dump_consensus_state (result.round_state.validators.validators)
-    // aka detailed info on validators
+    // txs statistics
+    else if(args[0]+" "+args[1] == 'txs stats') {
       if (args.length == 2) {   
-        sendValidatorsPower();
-      } else if (args.length == 3){
-        sendValidatorsPower(args[2]);
-      } else if (args.length == 4){
-        sendValidatorsPower(args[2], args[3]);
-      } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris validators power [url] [port]");
-      } 
-      
-    } 
-    
-    // txs
-    else if(args[0] == 'txs') {
-      if (args.length == 1) {   
         sendNumberTransaction();
-      } else if (args.length == 2){
-        sendNumberTransaction(args[1]);
       } else if (args.length == 3){
-        sendNumberTransaction(args[1], args[2]);
+        sendNumberTransaction(args[2]);
+      } else if (args.length == 4){
+        sendNumberTransaction(args[2], args[3]);
       } else {
         message.channel.send("**Please use the following format**: $cosmos/iris txs [url] [port]");
       }
 
-    } 
+    }
+    
+    // by hash
+    else if(args[0] == 'txs' ) {
+      if (args.length == 2) {
+        sendTxsByHash(args[1]);
+      } else if (args.length == 3) {
+        sendTxsByHash(args[1], args[2]);
+      } else if (args.length == 4) {
+        sendTxsByHash(args[1], args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris txs hash [url] [port]");
+      }
+    }
+    
+
+    // TODO: not sure if this is even any usable as is
+    else if(args[0]+" "+args[1] == 'mempool data') {
+      if (args.length == 2) {   
+        sendMempoolData();
+      } else if (args.length == 3){
+        sendMempoolData(args[2]);
+      } else if (args.length == 4){
+        sendMempoolData(args[2], args[3]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris mempool data [url] [port]");
+      }
+    }
+
+
     
     // keys
     else if(args[0] == 'keys') {
@@ -1121,7 +1214,7 @@ client.on("message", async message => {
             if (temp_elem != null) {
               // Loggin output
               // console.log(temp_elem[0].replace(/(<\/?cite>|<b>|<\/b>|&\w*;)/g, ""));
-              message.channel.send(temp_elem[0].replace(/(<\/?cite>|<b>|<\/b>|&\w*;)/g, ""));
+              message.channel.send(temp_elem[0].replace(/(<\/?cite>|<b>|<\/b>|&\w*;)/g, "").replace(" ","")); // also this step is hacky
             }
           }
         })
