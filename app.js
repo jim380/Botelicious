@@ -13,6 +13,104 @@ const client = new Discord.Client();
 //Discord bot token and prefix.          //
 //***************************************//
 const config = require("./config.json");
+//***************************************//
+//             ws setup                  //
+//***************************************//
+// Import ws module, and initialize ws connection
+const WebSocket = require('ws');
+const ws = new WebSocket(`ws://${config.cosmos_node.url}:${config.cosmos_node.ports[0]}/websocket`);
+
+// ws requests
+// TODO: Make it more general for use with other queries,
+// also it might make sense to use random id every time
+let subscribeNewBlockMsg = {
+  "jsonrpc": "2.0",
+  "method": "subscribe",
+  "id": "0",
+  "params": {
+    "query": "tm.event='NewBlock'",
+  },
+};
+
+// TODO: Try to figuire out when to send unsubscribe
+// possible memory leak if WS ain't closed
+let unsubscribeAllMsg = {
+  "jsonrpc": "2.0",
+  "method": "unsubscribe_all",
+  "id": "0",
+  "params": {},
+};
+
+// App pseud-store
+// TODO: Think about concept of actual store to update current state
+// 
+// TODO: Store subscribed validators in db, and initialize list on app start
+let subscribedValidators = {}
+// Older version
+// Might be as good, since js doesn't have dictionaries
+// let subscribedValidators = [
+//   'B0155252D73B7EEB74D2A8CC814397E66970A839', 
+//   'DCFAF6F426BC1CA53AD232DFD1B680F846A1130A', 
+//   'F3C2E55C59B510B6C4090E8B38CA649154FE7CBF', 
+//   '4DB9A55DED16FEF01B1E70C8D0501D9A0041FBEF',
+// ];
+// let subscribedChannels = [];
+
+// Helper method
+const isEmpty = (object) => {
+  return !object || Object.keys(object).length === 0;
+}
+
+// TODO: Improve error handling method
+try {
+  // open ws
+  ws.on('open', function open() {
+    ws.send(JSON.stringify(subscribeNewBlockMsg));
+  });
+
+  // ws handlers
+  ws.on('close', function close() {
+    console.log('WS Disconnected!');
+  });
+   
+  ws.on('message', function incoming(data) {
+    let json = JSON.parse(data)
+    if(isEmpty(json.result)) {
+      console.log('WS Connected!');
+    } else {
+      // console.log(json.result.data.value.block);
+      let targetValidators = Object.keys(subscribedValidators);
+      targetValidators.forEach( (validator) => {
+        let found = false;
+        let i = 0;
+        do {
+          if (!isEmpty(json.result.data.value.block.last_commit.precommits[i])) {
+            if (validator === json.result.data.value.block.last_commit.precommits[i].validator_address){
+              found = true;
+            }
+          } 
+          i+=1;
+        } while (!found && i<json.result.data.value.block.last_commit.precommits.length)
+
+        if (found) {
+          console.log(`${validator} present at height ${json.result.data.value.block.header.height}`);
+        } else {
+          subscribedValidators[validator].send(`${validator} absent at height ${json.result.data.value.block.header.height}`);
+        }
+      });
+    }
+  });
+} catch (e) {
+  console.log(e);
+  // unsubscribe
+  ws.on('open', function open() {
+    ws.send(JSON.stringify(unsubscribeAllMsg));
+  });
+}
+
+//***************************************//
+//                end ws                 //
+//***************************************//
 
 //***************************************//
 //                 Reply                 //
@@ -451,7 +549,7 @@ client.on("message", async message => {
   // Import custom http module
   const HttpUtil = require('./http-util');
   const httpUtil = new HttpUtil();
-  
+
   // Helper methods
   // Custom error handling
   const handleErrors = (e) => {
@@ -462,7 +560,7 @@ client.on("message", async message => {
       message.channel.send(`Ooops... connection issue!`);
     }
   }
-  
+
   // Functions to handle commands
   const sendNodeInfo = (url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
     httpUtil.httpGet(url, port, '/status')
@@ -893,7 +991,16 @@ client.on("message", async message => {
         message.channel.send("**Please use the following format**: $cosmos/iris txs hash [url] [port]");
       }
     }
-    
+
+    // subscribe
+    else if(args[0] == 'subscribe' ) {
+      if (args.length == 2) {
+        // TOFIX: Implement validator address check
+        subscribedValidators[args[1]] = message.channel;
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris subscribe address");
+      }
+    }    
 
     // TODO: not sure if this is even any usable as is
     else if(args[0]+" "+args[1] == 'mempool data') {
@@ -1073,6 +1180,7 @@ client.on("message", async message => {
     //   break; 
 
     else {
+
       message.channel.send(`Available commands:\n`
       + `Supply [url] [port] if requesting from a differnet addr than what's speficied in config.json\n\u200b\n`
       +`**last block** - (current block height)\n`
