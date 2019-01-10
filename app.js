@@ -19,6 +19,10 @@ const config = require("./config.json");
 // Import ws module, and initialize ws connection
 const WebSocket = require('ws');
 const ws = new WebSocket(`ws://${config.cosmos_node.url}:${config.cosmos_node.ports[0]}/websocket`);
+// Storing util and deps
+const dataUtil = require('./data-util');
+const fs = require('fs');
+const path = require('path');
 
 // ws requests
 // TODO: Make it more general for use with other queries,
@@ -41,11 +45,34 @@ let unsubscribeAllMsg = {
   "params": {},
 };
 
+let subscribedValidators = {}
+
+initState = (dirname, onFileContent, onError) => {
+  fs.readdir(dirname, function(err, filenames) {
+    if (err) {
+      onError(err);
+      return;
+    }
+    filenames.forEach(function(filename) {
+      fs.readFile(dirname + filename, 'utf-8', function(err, content) {
+        if (err) {
+          onError(err);
+          return;
+        }
+        onFileContent(filename, content);
+      });
+    });
+  });
+}
+
+initState(path.join(__dirname, '/.data/'), (filename, content)=>{
+  subscribedValidators[filename.slice(0,40)]=content.match(/(\d|\w)*/g)[1];
+  console.log(subscribedValidators);
+});
 // App pseud-store
 // TODO: Think about concept of actual store to update current state
 // 
 // TODO: Store subscribed validators in db, and initialize list on app start
-let subscribedValidators = {}
 // Older version
 // Might be as good, since js doesn't have dictionaries
 // let subscribedValidators = [
@@ -74,6 +101,9 @@ try {
   });
    
   ws.on('message', function incoming(data) {
+    // DEBUG
+    // console.log(data);
+
     let json = JSON.parse(data)
     if(isEmpty(json.result)) {
       console.log('WS Connected!');
@@ -93,9 +123,16 @@ try {
         } while (!found && i<json.result.data.value.block.last_commit.precommits.length)
 
         if (found) {
-          console.log(`${validator} present at height ${json.result.data.value.block.header.height}`);
+          client.fetchUser(subscribedValidators[validator])
+          .then(user => {
+            user.send(`${validator} present at height ${json.result.data.value.block.header.height}`);
+          })
+          .catch(e => console.log);
         } else {
-          subscribedValidators[validator].send(`${validator} absent at height ${json.result.data.value.block.header.height}`);
+          client.fetchUser(subscribedValidators[validator])
+          .then(user => {
+            user.send(`${validator} abscent at height ${json.result.data.value.block.header.height}`);
+          })
         }
       });
     }
@@ -103,9 +140,7 @@ try {
 } catch (e) {
   console.log(e);
   // unsubscribe
-  ws.on('open', function open() {
-    ws.send(JSON.stringify(unsubscribeAllMsg));
-  });
+  ws.send(JSON.stringify(unsubscribeAllMsg));
 }
 
 //***************************************//
@@ -995,10 +1030,33 @@ client.on("message", async message => {
     // subscribe
     else if(args[0] == 'subscribe' ) {
       if (args.length == 2) {
-        // TOFIX: Implement validator address check
-        subscribedValidators[args[1]] = message.channel;
+        if (isEmpty(subscribedValidators[args[1]])) {
+          // TOFIX: Implement validator address check
+          dataUtil.init(`${args[1]}`, message.author.id, (err) => {
+            console.log(err);
+          });
+          subscribedValidators[args[1]] = message.author.id;
+        } else {
+          dataUtil.overwrite(`${args[1]}`, message.author.id, (err) => {
+            console.log(err);
+          });
+          subscribedValidators[args[1]] = message.author.id;          
+        }
       } else {
         message.channel.send("**Please use the following format**: $cosmos/iris subscribe address");
+      }
+    }    
+
+    // unsubscribe
+    else if(args[0] == 'unsubscribe' ) {
+      if (args.length == 2) {
+        // TOFIX: Implement validator address check
+          dataUtil.remove(`${args[1]}`, (err) => {
+            console.log(err);
+          });
+          delete subscribedValidators[args[1]];
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris unsubscribe address");
       }
     }    
 
