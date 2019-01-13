@@ -18,12 +18,17 @@ const config = require("./config.json");
 //***************************************//
 // Import ws module, and initialize ws connection
 const WebSocket = require('ws');
-const ws = new WebSocket(`ws://${config.cosmos_node.url}:${config.cosmos_node.ports[0]}/websocket`);
+let ws = new WebSocket(`ws://${config.cosmos_node.url}:${config.cosmos_node.ports[0]}/websocket`);
+// Helper fxn to reinitialize ws 
+const reinitWS = () => {
+  ws = new WebSocket(`ws://${config.cosmos_node.url}:${config.cosmos_node.ports[0]}/websocket`);
+};
+
 // Storing util and deps
 const dataUtil = require('./data-util');
 const fs = require('fs');
 const path = require('path');
-
+const queryString = `tm.event='NewBlock'`;
 // ws requests
 // TODO: Make it more general for use with other queries,
 // also it might make sense to use random id every time
@@ -32,10 +37,9 @@ let subscribeNewBlockMsg = {
   "method": "subscribe",
   "id": "0",
   "params": {
-    "query": "tm.event='NewBlock'",
+    "query": `${queryString}`,
   },
 };
-
 // TODO: Try to figuire out when to send unsubscribe
 // possible memory leak if WS ain't closed
 let unsubscribeAllMsg = {
@@ -45,9 +49,13 @@ let unsubscribeAllMsg = {
   "params": {},
 };
 
-let subscribedValidators = {}
+let subscribedValidators = {};
+let validatorsAlertStatus = {};
+// TODO: this might be better way to init
+// let subscribedValidators = {'':''};
+// let validatorsAlertStatus = {''-1};
 
-initState = (dirname, onFileContent, onError) => {
+const initState = (dirname, onFileContent, onError) => {
   fs.readdir(dirname, function(err, filenames) {
     if (err) {
       onError(err);
@@ -65,31 +73,32 @@ initState = (dirname, onFileContent, onError) => {
   });
 }
 
+// Init state
 initState(path.join(__dirname, '/.data/'), (filename, content)=>{
-  subscribedValidators[filename.slice(0,40)]=content.match(/(\d|\w)*/g)[1];
-  console.log(subscribedValidators);
+  // Format filename
+  filename = filename.slice(0,40);
+  // Extract info from file content
+  let validatorInfo = content.slice(1, content.length-1).split('+');
+
+  subscribedValidators[filename] = validatorInfo[0];
+  validatorsAlertStatus[filename] = parseInt(validatorInfo[1],10);
+
+  // debugging
+  // console.log(subscribedValidators);
+  // console.log(validatorsAlertStatus);
 });
-// App pseud-store
-// TODO: Think about concept of actual store to update current state
-// 
-// TODO: Store subscribed validators in db, and initialize list on app start
-// Older version
-// Might be as good, since js doesn't have dictionaries
-// let subscribedValidators = [
-//   'B0155252D73B7EEB74D2A8CC814397E66970A839', 
-//   'DCFAF6F426BC1CA53AD232DFD1B680F846A1130A', 
-//   'F3C2E55C59B510B6C4090E8B38CA649154FE7CBF', 
-//   '4DB9A55DED16FEF01B1E70C8D0501D9A0041FBEF',
-// ];
-// let subscribedChannels = [];
+
 
 // Helper method
 const isEmpty = (object) => {
   return !object || Object.keys(object).length === 0;
 }
 
+// Number of alerts before cutoff
+const ALERTS_CUTOFF = 5;
+
 // TODO: Improve error handling method
-try {
+try { 
   // open ws
   ws.on('open', function open() {
     ws.send(JSON.stringify(subscribeNewBlockMsg));
@@ -98,6 +107,8 @@ try {
   // ws handlers
   ws.on('close', function close() {
     console.log('WS Disconnected!');
+    // Initialize ws again
+    reinitWS();
   });
    
   ws.on('message', function incoming(data) {
@@ -123,16 +134,40 @@ try {
         } while (!found && i<json.result.data.value.block.last_commit.precommits.length)
 
         if (found) {
-          client.fetchUser(subscribedValidators[validator])
-          .then(user => {
-            user.send(`${validator} present at height ${json.result.data.value.block.header.height}`);
-          })
-          .catch(e => console.log);
+          // Check if has been absent for a while
+          if (validatorsAlertStatus[validator] > ALERTS_CUTOFF) {
+            let firstMissedBlock = validatorsAlertStatus[validator];
+            validatorsAlertStatus[validator] = 0;
+            // Update stored status
+            dataUtil.overwrite(`${validator}`, `${subscribedValidators[validator]}+${validatorsAlertStatus[validator]}`, (err) => {
+              console.log(err, `${validator}`);
+            });
+            // Send alert
+            client.fetchUser(subscribedValidators[validator])
+            .then(user => {  
+              user.send(`${validator} is back up at height ${json.result.data.value.block.header.height}. Has been absent since block ${firstMissedBlock}.`);
+            })
+            .catch(e => console.log);
+          }
         } else {
-          client.fetchUser(subscribedValidators[validator])
-          .then(user => {
-            user.send(`${validator} abscent at height ${json.result.data.value.block.header.height}`);
-          })
+          // Check alert status
+          // If alert status (number of conseq. blocks missed) < cutoff,
+          // continue to alert this validator
+          if (validatorsAlertStatus[validator] < ALERTS_CUTOFF) {
+            validatorsAlertStatus[validator] += 1;
+            // Send alert
+            client.fetchUser(subscribedValidators[validator])
+            .then(user => {
+              user.send(`${validator} absent at height ${json.result.data.value.block.header.height}`);
+            })
+          .catch(e => console.log);
+          } else if(validatorsAlertStatus[validator] === ALERTS_CUTOFF) {
+            // If alert status == cutoff, cease to alert and store 1st missed block
+            validatorsAlertStatus[validator] = json.result.data.value.block.header.height-ALERTS_CUTOFF;
+            dataUtil.overwrite(`${validator}`, `${subscribedValidators[validator]}+${validatorsAlertStatus[validator]}`, (err) => {
+              console.log(err);
+            });
+          }
         }
       });
     }
@@ -141,6 +176,7 @@ try {
   console.log(e);
   // unsubscribe
   ws.send(JSON.stringify(unsubscribeAllMsg));
+  reinitWS();
 }
 
 //***************************************//
@@ -1032,15 +1068,17 @@ client.on("message", async message => {
       if (args.length == 2) {
         if (isEmpty(subscribedValidators[args[1]])) {
           // TOFIX: Implement validator address check
-          dataUtil.init(`${args[1]}`, message.author.id, (err) => {
+          dataUtil.init(`${args[1]}`, `${message.author.id}+0`, (err) => {
             console.log(err);
           });
           subscribedValidators[args[1]] = message.author.id;
+          validatorsAlertStatus[args[1]] = 0;
         } else {
-          dataUtil.overwrite(`${args[1]}`, message.author.id, (err) => {
+          dataUtil.overwrite(`${args[1]}`, `${message.author.id}+0`, (err) => {
             console.log(err);
           });
-          subscribedValidators[args[1]] = message.author.id;          
+          subscribedValidators[args[1]] = message.author.id; 
+          validatorsAlertStatus[args[1]] = 0;         
         }
       } else {
         message.channel.send("**Please use the following format**: $cosmos/iris subscribe address");
