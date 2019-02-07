@@ -1,3 +1,29 @@
+//                                                                                                         
+//                                                  jim380 <admin@cyphercore.io>
+//  ============================================================================
+//  
+//  Copyright (C) 2018 jim380, aakatev
+//  
+//  Permission is hereby granted, free of charge, to any person obtaining
+//  a copy of this software and associated documentation files (the
+//  "Software"), to deal in the Software without restriction, including
+//  without limitation the rights to use, copy, modify, merge, publish,
+//  distribute, sublicense, and/or sell copies of the Software, and to
+//  permit persons to whom the Software is furnished to do so, subject to
+//  the following conditions:
+//  
+//  The above copyright notice and this permission notice shall be
+//  included in all copies or substantial portions of the Software.
+//  
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+//  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+//  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+//  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+//  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+//  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+//  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//  
+//  ============================================================================
 // Load the discord.js library
 const Discord = require("discord.js");
 const got = require('got');
@@ -184,11 +210,6 @@ try {
 //***************************************//
 
 //***************************************//
-//                 Reply                 //
-//***************************************//
-const responseObject = require("./reply.json");
-
-//***************************************//
 //              Log on message           //
 //***************************************//
 client.on("ready", () => {
@@ -239,12 +260,6 @@ client.on('messageDelete', async (message) => {
   logs.send(`A message was deleted in "#${message.channel.name}" by ${user}`);
 })
 
-client.on("message", (message) => {
-  if(responseObject[message.content]) {
-    message.channel.send(responseObject[message.content]);
-  }
-});
-
 //***************************************//
 // Message send:                         //
 // triggers whenever the bot receives    //
@@ -261,358 +276,6 @@ client.on("message", async message => {
   // Separate command and its arguments
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
-
-//-----------------------------------------------------------------------------------------//
-//                                         MEX                                             //
-//-----------------------------------------------------------------------------------------//
-    const fetch = require('node-fetch');
-    const crypto = require('crypto');
-    const qs = require('qs');
-    const apiKey = '';
-    const apiSecret = '';
-    function makeRequest(verb, endpoint, data = {}) {
-      const apiRoot = '/api/v1/';
-      const expires = new Date().getTime() + (60 * 1000);  // 1 min in the future
-
-      let query = '', postBody = '';
-      if (verb === 'GET')
-        query = '?' + qs.stringify(data);
-      else
-      // Pre-compute the reqBody so we can be sure that we're using *exactly* the same body in the request
-      // and in the signature. If you don't do this, you might get differently-sorted keys and blow the signature.
-        postBody = JSON.stringify(data);
-
-      const signature = crypto.createHmac('sha256', apiSecret)
-        .update(verb + apiRoot + endpoint + query + expires + postBody).digest('hex');
-
-      const headers = {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-        // This example uses the 'expires' scheme. You can also use the 'nonce' scheme. See
-        // https://www.bitmex.com/app/apiKeysUsage for more details.
-        'api-expires': expires,
-        'api-key': apiKey,
-        'api-signature': signature,
-      };
-
-      const requestOptions = {
-        method: verb,
-        headers,
-      };
-      if (verb !== 'GET') requestOptions.body = postBody;  // GET/HEAD requests can't have body
-
-      const url = 'https://www.bitmex.com' + apiRoot + endpoint + query;
-
-      return fetch(url, requestOptions).then(response => response.json()).then(
-        response => {
-          if ('error' in response) throw new Error(response.error.message);
-          return response;
-        },
-      error => console.error('Network error', error),
-      );
-    }
-
-    if(command === "console") {
-      (async function main() {
-        try {
-          const result = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ETHUSD' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          console.log(result[0]);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "shack") {
-      (async function main() {
-        try {
-          await message.channel.send('Working hard fetching data...').then(message => { message.delete(5000) });
-//_____________________________________________________________________________
-          const xbt_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTUSD' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const xbt_z = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const xbt_h = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XBTH19' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const eth_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ETHUSD' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const eth_z = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ETHZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-
-          const ada_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'ADAZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const ltc_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'LTCZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const trx_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'TRXZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-
-          const bch_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'BCHZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const eos_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'EOSZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const xrp_p = await makeRequest('GET', 'position', {
-            filter: { symbol: 'XRPZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          //           0    1    2    3    4    5    6    7    8    9
-          //var result=[xbt, eth, ada, ltc, trx, u18, z18, bch, eos, xrp];
-          //             0      1      2      3      4      5      6      7      8      9      10     11     12     13
-          var result_p=[xbt_p, xbt_z, xbt_h, eth_p, eth_z, ada_p, xrp_p, trx_p, bch_p, eos_p, ltc_p];
-  //_____________________________________________________________________________
-          //--- XBTUSD ---//
-          if(result_p[0][0].isOpen === true){
-          var pt = "";
-          pt = result_p[0][0].avgEntryPrice >= result_p[0][0].markPrice ? (result_p[0][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[0][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(pt);
-          //console.log(result_p[0][0]);
-          message.channel.send(`---------------${result_p[0][0].symbol}---------------\n**Opening time**: ${result_p[0][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[0][0].leverage}x\n**Entry price**: $${result_p[0][0].avgEntryPrice}\n**Market price**: $${result_p[0][0].markPrice}\n**Liquidation price**: $${result_p[0][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[0][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- ETHUSD ---//
-          if(result_p[3][0].isOpen === true){
-          var pt = "";
-          pt = result_p[3][0].avgEntryPrice >= result_p[3][0].markPrice ? (result_p[3][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[3][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[3][0]);
-          message.channel.send(`---------------${result_p[3][0].symbol}---------------\n**Opening time**: ${result_p[3][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[3][0].leverage}x\n**Entry price**: $${result_p[3][0].avgEntryPrice}\n**Market price**: $${result_p[3][0].markPrice}\n**Liquidation price**: $${result_p[3][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[3][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- ADAZ18 ---//
-          if(result_p[5][0].isOpen === true){
-          var pt = "";
-          pt = result_p[5][0].avgEntryPrice >= result_p[5][0].markPrice ? (result_p[5][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[5][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[5][0]);
-          message.channel.send(`---------------${result_p[5][0].symbol}---------------\n**Opening time**: ${result_p[5][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[5][0].leverage}x\n**Entry price**: ₿${result_p[5][0].avgEntryPrice}\n**Market price**: ₿${result_p[5][0].markPrice}\n**Liquidation price**: ₿${result_p[5][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[5][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- XRPZ18 ---//
-          if(result_p[6][0].isOpen === true){
-          var pt = "";
-          pt = result_p[6][0].avgEntryPrice >= result_p[6][0].markPrice ? (result_p[6][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[6][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[6][0]);
-          message.channel.send(`---------------${result_p[6][0].symbol}---------------\n**Opening time**: ${result_p[6][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[6][0].leverage}x\n**Entry price**: ₿${result_p[6][0].avgEntryPrice}\n**Market price**: ₿${result_p[6][0].markPrice}\n**Liquidation price**: ₿${result_p[6][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[6][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- TRXZ18 ---//
-          if(result_p[7][0].isOpen === true){
-          var pt = "";
-          pt = result_p[7][0].avgEntryPrice >= result_p[7][0].markPrice ? (result_p[7][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[7][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[7][0]);
-          message.channel.send(`---------------${result_p[7][0].symbol}---------------\n**Opening time**: ${result_p[7][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[7][0].leverage}x\n**Entry price**: ₿${result_p[7][0].avgEntryPrice}\n**Market price**: ₿${result_p[7][0].markPrice}\n**Liquidation price**: ₿${result_p[7][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[7][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- BCHZ18 ---//
-          if(result_p[8][0].isOpen === true){
-          var pt = "";
-          pt = result_p[8][0].avgEntryPrice >= result_p[8][0].markPrice ? (result_p[8][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[8][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[8][0]);
-          message.channel.send(`---------------${result_p[8][0].symbol}---------------\n**Opening time**: ${result_p[8][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[8][0].leverage}x\n**Entry price**: ₿${result_p[8][0].avgEntryPrice}\n**Market price**: ₿${result_p[8][0].markPrice}\n**Liquidation price**: ₿${result_p[8][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[8][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- EOSZ18 ---//
-          if(result_p[9][0].isOpen === true){
-          var pt = "";
-          pt = result_p[9][0].avgEntryPrice >= result_p[9][0].markPrice ? (result_p[9][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[9][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[9][0]);
-          message.channel.send(`---------------${result_p[9][0].symbol}---------------\n**Opening time**: ${result_p[9][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[9][0].leverage}x\n**Entry price**: ₿${result_p[9][0].avgEntryPrice}\n**Market price**: ₿${result_p[9][0].markPrice}\n**Liquidation price**: ₿${result_p[9][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[9][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- XBTZ18 ---//
-          if(result_p[1][0].isOpen === true){
-          var pt = "";
-          pt = result_p[1][0].avgEntryPrice >= result_p[1][0].markPrice ? (result_p[1][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[1][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[1][0]);
-          message.channel.send(`---------------${result_p[1][0].symbol}---------------\n**Opening time**: ${result_p[1][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[1][0].leverage}x\n**Entry price**: $${result_p[1][0].avgEntryPrice}\n**Market price**: $${result_p[1][0].markPrice}\n**Liquidation price**: $${result_p[1][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[1][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- ETHZ18 ---//
-          if(result_p[4][0].isOpen === true){
-          var pt = "";
-          pt = result_p[4][0].avgEntryPrice >= result_p[4][0].markPrice ? (result_p[4][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[4][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[4][0]);
-          message.channel.send(`---------------${result_p[4][0].symbol}---------------\n**Opening time**: ${result_p[4][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[4][0].leverage}x\n**Entry price**: ₿${result_p[4][0].avgEntryPrice}\n**Market price**: ₿${result_p[4][0].markPrice}\n**Liquidation price**: ₿${result_p[4][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[4][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- LTCZ18 ---//
-          if(result_p[10][0].isOpen === true){
-          var pt = "";
-          pt = result_p[10][0].avgEntryPrice >= result_p[10][0].markPrice ? (result_p[10][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[10][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[9][0]);
-          message.channel.send(`---------------${result_p[10][0].symbol}---------------\n**Opening time**: ${result_p[10][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[10][0].leverage}x\n**Entry price**: ₿${result_p[10][0].avgEntryPrice}\n**Market price**: ₿${result_p[10][0].markPrice}\n**Liquidation price**: ₿${result_p[10][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[10][0].unrealisedRoePcnt*100}%`);
-          }
-          //--- XBTH19 ---//
-          if(result_p[2][0].isOpen === true){
-          var pt = "";
-          pt = result_p[2][0].avgEntryPrice >= result_p[2][0].markPrice ? (result_p[2][0].unrealisedRoePcnt >0 ? "short" : "long") : (result_p[2][0].unrealisedRoePcnt >0 ? "long" : "short");
-          //console.log(result_p[2][0]);
-          message.channel.send(`---------------${result_p[2][0].symbol}---------------\n**Opening time**: ${result_p[2][0].openingTimestamp}\n**Position**: ${pt}\n**leverage**: ${result_p[2][0].leverage}x\n**Entry price**: $${result_p[2][0].avgEntryPrice}\n**Market price**: $${result_p[2][0].markPrice}\n**Liquidation price**: $${result_p[2][0].liquidationPrice}\n**Unrealized ROE%**: ${result_p[2][0].unrealisedRoePcnt*100}%`);
-          }
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "xbt") {
-      (async function main() {
-        try {
-          const xbt = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'XBTUSD' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${xbt[0].symbol}---------------\n**Funding rate**: ${xbt[0].fundingRate*100}%\n**Market price**: $${xbt[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "eth") {
-      (async function main() {
-        try {
-          const eth = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'ETHUSD' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${eth[0].symbol}---------------\n**Funding rate**: ${eth[0].fundingRate*100}%\n**Market price**: $${eth[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "ada") {
-      (async function main() {
-        try {
-          const ada = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'ADAZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${ada[0].symbol}---------------\n**Market price**: ₿${ada[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "ltc") {
-      (async function main() {
-        try {
-          const ltc = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'LTCZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${ltc[0].symbol}---------------\n**Market price**: ₿${ltc[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "trx") {
-      (async function main() {
-        try {
-          const trx = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'TRXZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${trx[0].symbol}---------------\n**Market price**: ₿${trx[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "xbt.futures") {
-      (async function main() {
-        try {
-          const h19 = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'XBTH19' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          const z18 = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'XBTZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${z18[0].symbol}---------------\n**Market price**: $${z18[0].markPrice}`);
-          message.channel.send(`---------------${h19[0].symbol}---------------\n**Market price**: $${h19[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "eth.futures") {
-      (async function main() {
-        try {
-          const z18 = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'ETHZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${z18[0].symbol}---------------\n**Market price**: ₿${z18[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "bch") {
-      (async function main() {
-        try {
-          const bch = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'BCHZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${bch[0].symbol}---------------\n**Market price**: ₿${bch[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "eos") {
-      (async function main() {
-        try {
-          const eos = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'EOSZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${eos[0].symbol}---------------\n**Market price**: ₿${eos[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-
-    if(command === "xrp") {
-      (async function main() {
-        try {
-          const xrp = await makeRequest('GET', 'instrument', {
-            filter: { symbol: 'XRPZ18' },
-            //columns: ['currentQty', 'avgEntryPrice'],
-          });
-          message.channel.send(`---------------${xrp[0].symbol}---------------\n**Market price**: ₿${xrp[0].markPrice}`);
-        } catch (e) {
-          console.error(e);
-          };
-      }());
-    }
-//-----------------------------------------------------------------------------------------//
-//                                         End                                             //
-//-----------------------------------------------------------------------------------------//
 
 //-----------------------------------------------------------------------------------------//
 //                                    Cosmos Node Commands                                 //
@@ -815,6 +478,20 @@ client.on("message", async message => {
       .catch(e => handleErrors(e));
   }
 
+  /* const sendBalanceInfo  = (url = config.cosmos_node.url, port = config.cosmos_node.ports[2]) => {
+    httpUtil.httpsGet(url, port, '/bank/balances/${args[1]}')
+      .then(data => JSON.parse(data))
+      .then(json => {
+        let i = 1;
+        for (let bal of json) {
+          message.channel.send(`${i}.\n**Denomination**: ${bal.denom}\n`
+          +`**Amount**: ${bal.amount}\n\u200b\n`);
+          i++;
+        }
+      }) 
+      .catch(e => handleErrors(e));
+  } */
+
   const sendBlock = (height, url = config.cosmos_node.url, port = config.cosmos_node.ports[0]) => {
     if (height < 1) {
       message.channel.send("Height must be positive!");
@@ -825,8 +502,7 @@ client.on("message", async message => {
           if (json.error) {
             message.channel.send(json.error.data);
           }else {
-            message.channel.send(`**Block at height**: ${json.result.block.header.height}\n`
-              +`**Hash**: ${json.result.block_meta.block_id.hash}\n`
+            message.channel.send(`**Hash**: ${json.result.block_meta.block_id.hash}\n`
               +`**Proposer**: ${json.result.block.header.proposer_address}\n\u200b\n`);
             // Send treansactions
             message.channel.send(`**Transactions**:\n`)
@@ -902,7 +578,7 @@ client.on("message", async message => {
   // Commands
   if(command === "cosmos" || command === "iris") {
     
-    // node indo
+    // node info
     if(args[0]+" "+args[1] == 'node info') {
 
       if (args.length == 2) {   
@@ -912,7 +588,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendNodeInfo(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris node info [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris node info [ip] [port]");
       }
 
     } 
@@ -927,7 +603,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendLastBlock(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris last block [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris last block [ip] [port]");
       }
 
     } 
@@ -941,7 +617,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendChainID(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris chain id [ip] [port]");
       }
 
     } 
@@ -957,7 +633,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendValidatorsPower(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris validators power [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris validators power [ip] [port]");
       } 
       
     } 
@@ -972,13 +648,13 @@ client.on("message", async message => {
       } else if (args.length == 3){
         sendValidators(args[1], args[2]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris validators [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris validators [ip] [port]");
       }
     
     } 
     
-    // votes
-    else if(args[0] == 'votes') {
+    // proposals
+    else if(args[0] == 'proposals') {
 
       if (args.length == 1) {   
         sendVotes();
@@ -987,7 +663,7 @@ client.on("message", async message => {
       } else if (args.length == 3){
         sendVotes(args[1], args[2]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris votes [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris proposals [ip] [port]");
       }
 
     } 
@@ -1002,7 +678,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendPeersCount(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris peers count [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris peers count [ip] [port]");
       }
 
     } 
@@ -1017,7 +693,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendPeersList(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris peers list [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris peers list [ip] [port]");
       }
 
     } 
@@ -1032,7 +708,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendGenesisValidators(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris chain id [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris chain id [ip] [port]");
       } 
 
     } 
@@ -1045,7 +721,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendNumberTransaction(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris txs [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris txs [ip] [port]");
       }
 
     }
@@ -1059,7 +735,7 @@ client.on("message", async message => {
       } else if (args.length == 4) {
         sendTxsByHash(args[1], args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris txs hash [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris txs hash [ip] [port]");
       }
     }
 
@@ -1081,7 +757,7 @@ client.on("message", async message => {
           validatorsAlertStatus[args[1]] = 0;         
         }
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris subscribe address");
+        message.channel.send("**Please use the following format**: +cosmos/iris subscribe address");
       }
     }    
 
@@ -1094,7 +770,7 @@ client.on("message", async message => {
           });
           delete subscribedValidators[args[1]];
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris unsubscribe address");
+        message.channel.send("**Please use the following format**: +cosmos/iris unsubscribe address");
       }
     }    
 
@@ -1107,7 +783,7 @@ client.on("message", async message => {
       } else if (args.length == 4){
         sendMempoolData(args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris mempool data [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris mempool data [ip] [port]");
       }
     }
 
@@ -1123,7 +799,7 @@ client.on("message", async message => {
       } else if (args.length == 3) {
         sendAccountInfo(args[1],args[2]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris accounts [ip] [port]");
       }
     } 
     
@@ -1136,7 +812,7 @@ client.on("message", async message => {
       } else if (args.length == 4) {
         sendBlock(args[1], args[2], args[3]);
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris block # [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris block # [ip] [port]");
       }
     }
 
@@ -1216,7 +892,7 @@ client.on("message", async message => {
         }) 
         .catch(e => handleErrors(e));  
       }  else {
-        message.channel.send("**Please use the following format**: $cosmos/iris proposals");
+        message.channel.send("**Please use the following format**: +cosmos/iris proposals");
       }
     }
     
@@ -1230,7 +906,7 @@ client.on("message", async message => {
           }) 
           .catch(e => handleErrors(e));  
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris mempool flush [url] [port]");
+        message.channel.send("**Please use the following format**: +cosmos/iris mempool flush [ip] [port]");
       }
     }
 
@@ -1249,9 +925,21 @@ client.on("message", async message => {
           }) 
           .catch(e => handleErrors(e));  
       } else {
-        message.channel.send("**Please use the following format**: $cosmos/iris balance [url] [port] [address(in bech32)]");
+        message.channel.send("**Please use the following format**: +cosmos/iris balance [ip] [port] [address(in bech32)]");
       }
     }
+
+    
+    /* else if(args[0] == 'balance') {
+      if (args.length == 2) {
+        sendBalanceInfo();
+      } else if (args.length == 3) {
+        sendBalanceInfo(args[1],args[2]);
+      } else {
+        message.channel.send("**Please use the following format**: $cosmos/iris accounts [url] [port]");
+      }
+    } */
+
     // case match(/height \d*/):
     //   message.channel.send(args[1]);
     //   break;
@@ -1276,24 +964,25 @@ client.on("message", async message => {
     //   break; 
 
     else {
-
-      message.channel.send(`Available commands:\n`
-      + `Supply [url] [port] if requesting from a differnet addr than what's speficied in config.json\n\u200b\n`
-      +`**last block** - (current block height)\n`
-      +`**node info** - (node-id, address etc.)\n`
-      +`**peers count** - (num. of peers)\n`
-      +`**peers list** - (list all peers)\n`
-      +`**validators** - (validators at current height)\n`
-      +`**genesis validators** - (duh)\n`
-      + `**block** - (hash and proposer of block X)\n`
-      +`**votes** - (WIP)\n`
-      +`**txs** - (confirmed/failed transaction count)\n`
+      message.channel.send(`Command glossary:\n`
+      + `Append [IP] if querying a node that's speficied in config.json\n\u200b\n`
+      +`**last block** - (current block height) \`\`\`+cosmos last block\`\`\`\n`
+      +`**node info** - (node-id, address etc.) \`\`\`+cosmos node info\`\`\`\n`
+      +`**peers count** - (num. of peers) \`\`\`+cosmos peers count\`\`\`\n`
+      +`**peers list** - (list all peers; potential message bomb, use at your own risk) \`\`\`+cosmos peers list\`\`\`\n`
+      +`**validators** - (active validators; message bomb on steriods) \`\`\`+cosmos validators\`\`\`\n`
+      +`**genesis validators** - (needs fixed) \`\`\`+cosmos genesis validators\`\`\`\n`
+      + `**block** - (hash and proposer of the block; num. of txn in the block) \`\`\`+cosmos block [block number]\`\`\`\n`
+      +`**proposals** - (fetch all proposals with YES/NO ratio) \`\`\`+cosmos proposals\`\`\`\n`
+      +`**txs** - (gas wanted & gas used) \`\`\`+cosmos txs [txn hash]\`\`\`\n`
+      +`**subscribe** - (get alerts when the validator in query misses blocks) \`\`\`+cosmos subscribe [validator address]\`\`\`\n`
+      +`**unsubscribe** - (stop alerts) \`\`\`+cosmos unsubscribe [validator address]\`\`\`\n`
       + `\u200b\n`
-      + `The following commands require a running REST server\n`
+      + `The following commands require a running REST server at the IP specified in config.json\n`
       + `\u200b\n`
-      +`**keys** - (available keys)\n`
-      + `**mempool flush** - (flush flush)\n`
-      + `**balance** - (account balance)\n`
+      +`**keys** - (available keys) \`\`\`+cosmos keys\`\`\`\n`
+      + `**mempool flush** - (flush flush) \`\`\`+cosmos mempool flush [node IP] 1317\`\`\`\n`
+      + `**balance** - (account balance) \`\`\`+cosmos balance [REST server IP] 1317 [query address]\`\`\`\n`
       );     
     }
   }
