@@ -112,7 +112,7 @@ initState(path.join(__dirname, '/.data/'), (filename, content)=>{
   // debugging
   // console.log(subscribedValidators);
   // console.log(validatorsAlertStatus);
-});
+}, (err)=>{console.log(err)});
 
 
 // Helper method
