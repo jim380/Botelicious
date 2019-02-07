@@ -965,7 +965,7 @@ client.on("message", async message => {
 
     else {
       message.channel.send(`Command glossary:\n`
-      + `Append [IP] if querying a node that's speficied in config.json\n\u200b\n`
+      + `Append [IP] if querying a node that's not speficied in config.json\n\u200b\n`
       +`**last block** - (last block height the node is synced at) \`\`\`+cosmos last block\`\`\`\n`
       +`**node info** - (node-id, address, voting power etc.) \`\`\`+cosmos node info\`\`\`\n`
       +`**peers count** - (num. of peers) \`\`\`+cosmos peers count\`\`\`\n`
