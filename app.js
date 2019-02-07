@@ -966,21 +966,21 @@ client.on("message", async message => {
     else {
       message.channel.send(`Command glossary:\n`
       + `Append [IP] if querying a node that's speficied in config.json\n\u200b\n`
-      +`**last block** - (current block height) \`\`\`+cosmos last block\`\`\`\n`
-      +`**node info** - (node-id, address etc.) \`\`\`+cosmos node info\`\`\`\n`
+      +`**last block** - (last block height the node is synced at) \`\`\`+cosmos last block\`\`\`\n`
+      +`**node info** - (node-id, address, voting power etc.) \`\`\`+cosmos node info\`\`\`\n`
       +`**peers count** - (num. of peers) \`\`\`+cosmos peers count\`\`\`\n`
       +`**peers list** - (list all peers; potential message bomb, use at your own risk) \`\`\`+cosmos peers list\`\`\`\n`
-      +`**validators** - (active validators; message bomb on steriods) \`\`\`+cosmos validators\`\`\`\n`
+      +`**validators** - (list all active validators; message bomb on steriods) \`\`\`+cosmos validators\`\`\`\n`
       +`**genesis validators** - (needs fixed) \`\`\`+cosmos genesis validators\`\`\`\n`
       + `**block** - (hash and proposer of the block; num. of txn in the block) \`\`\`+cosmos block [block number]\`\`\`\n`
       +`**proposals** - (fetch all proposals with YES/NO ratio) \`\`\`+cosmos proposals\`\`\`\n`
-      +`**txs** - (gas wanted & gas used) \`\`\`+cosmos txs [txn hash]\`\`\`\n`
+      +`**txs** - (gas wanted & gas used in transaction) \`\`\`+cosmos txs [txn hash]\`\`\`\n`
       +`**subscribe** - (get alerts when the validator in query misses blocks) \`\`\`+cosmos subscribe [validator address]\`\`\`\n`
       +`**unsubscribe** - (stop alerts) \`\`\`+cosmos unsubscribe [validator address]\`\`\`\n`
       + `\u200b\n`
       + `The following commands require a running REST server at the IP specified in config.json\n`
       + `\u200b\n`
-      +`**keys** - (available keys) \`\`\`+cosmos keys\`\`\`\n`
+      +`**keys** - (all keys available at the supplied account) \`\`\`+cosmos keys\`\`\`\n`
       + `**mempool flush** - (flush flush) \`\`\`+cosmos mempool flush [node IP] 1317\`\`\`\n`
       + `**balance** - (account balance) \`\`\`+cosmos balance [REST server IP] 1317 [query address]\`\`\`\n`
       );     
