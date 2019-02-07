@@ -34,7 +34,7 @@ A Discord bot for making node-specific queries, while featuring a simple alertin
 6. ```$ docker run -i --name <image_name> <container_name>```
 ## Command Glossary
 ```
-Append [IP] if querying a node that's speficied in config.json
+Append [IP] if querying a node that's not speficied in config.json
 
 +cosmos last block                          (last block height the node is synced at)
 +cosmos node info                           (node-id, address, voting power etc.)  
