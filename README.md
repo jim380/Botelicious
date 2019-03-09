@@ -1,5 +1,5 @@
 # Botelicious - ;) 
-A Discord bot for making node-specific queries, while featuring a simple alerting system. Currently supports:<br>
+A chatbot for making node-specific queries, while featuring a simple alerting system. Currently supports:<br>
 - Cosmos<br>
 - Irisnet
 
