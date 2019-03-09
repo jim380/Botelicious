@@ -9,7 +9,13 @@ A Discord bot for making node-specific queries, while featuring a simple alertin
 <br/>```$ curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -```<br/>```$ sudo apt-get install -y nodejs```<br>
 1. ```$ git clone https://github.com/jim380/Botelicious```
 ## Configuration
-2. ```$ cd Botelicious```
+####Telegram
+2. ```$ cd Botelicious/Telegram```
+3. ```$ nano config.json``` and fill in the empty field for ```"url"```. You may change the prefix too if you like.<br>
+4. ```$ nano app.js``` and fill in the empty field for ```token: ''``` at line 128.
+5. **Optional:** ```$ nano app.js``` and fill in the empty fields for ```apiKey = ''``` and ```apiSecret = ''``` at line 166-167 if you want to get Bitmex working.
+####Discord
+2. ```$ cd Botelicious/Discord```
 3. ```$ nano config.json``` and fill in the empty fields for ```"token"``` and ```"url"```. You may change the prefix too if you like.<br>
 
 **Sample config.json**
@@ -25,14 +31,28 @@ A Discord bot for making node-specific queries, while featuring a simple alertin
 ```
 ## Deploy
 #### Method 1 – from source
-4. ```$ sudo npm i```
+4. ```$ npm i```
 5. ```$ node app.js```
 
 #### Method 2 – via docker
-4. ```$ sudo npm i```
+4. ```$ npm i```
 5. ```$ docker build -t <image_name> .```
 6. ```$ docker run -i --name <image_name> <container_name>```
 ## Command Glossary
+####Telegram
+Menu
+[Menu](Telegram/pics/node.png)
+Node Queries
+[Node Queries](Telegram/pics/node_queries.png)
+Chain Queries
+[Chain Queries](Telegram/pics/chain_queries.png)
+Alerts
+[Alerts](Telegram/pics/alert.png)
+LCD Queries
+[LCD Queries](Telegram/pics/lcd.png)
+Bitmex
+[Bitmex](Telegram/pics/mex.png)
+####Discord
 ```
 Append [IP] if querying a node that's not speficied in config.json
 
