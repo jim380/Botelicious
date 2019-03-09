@@ -39,20 +39,20 @@ A Discord bot for making node-specific queries, while featuring a simple alertin
 5. ```$ docker build -t <image_name> .```
 6. ```$ docker run -i --name <image_name> <container_name>```
 ## Command Glossary
-####Telegram
-Menu
-[Menu](Telegram/pics/node.png)
-Node Queries
-[Node Queries](Telegram/pics/node_queries.png)
-Chain Queries
-[Chain Queries](Telegram/pics/chain_queries.png)
-Alerts
-[Alerts](Telegram/pics/alert.png)
-LCD Queries
-[LCD Queries](Telegram/pics/lcd.png)
-Bitmex
-[Bitmex](Telegram/pics/mex.png)
-####Discord
+#### Telegram<br>
+Menu<br>
+![Menu](Telegram/pics/node.png)<br>
+Node Queries<br>
+![Node Queries](Telegram/pics/node_queries.png)<br>
+Chain Queries<br>
+![Chain Queries](Telegram/pics/chain_queries.png)<br>
+Alerts<br>
+![Alerts](Telegram/pics/alert.png)<br>
+LCD Queries<br>
+![LCD Queries](Telegram/pics/lcd.png)<br>
+Bitmex<br>
+![Bitmex](Telegram/pics/mex.png)<br>
+#### Discord
 ```
 Append [IP] if querying a node that's not speficied in config.json
 
