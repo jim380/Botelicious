@@ -9,13 +9,14 @@ A Discord bot for making node-specific queries, while featuring a simple alertin
 <br/>```$ curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -```<br/>```$ sudo apt-get install -y nodejs```<br>
 1. ```$ git clone https://github.com/jim380/Botelicious```
 ## Configuration
-####Telegram
-2. ```$ cd Botelicious/Telegram```
+#### Telegram<br>
+2. ```$ cd Botelicious/Telegram```<br>
 3. ```$ nano config.json``` and fill in the empty field for ```"url"```. You may change the prefix too if you like.<br>
-4. ```$ nano app.js``` and fill in the empty field for ```token: ''``` at line 128.
-5. **Optional:** ```$ nano app.js``` and fill in the empty fields for ```apiKey = ''``` and ```apiSecret = ''``` at line 166-167 if you want to get Bitmex working.
-####Discord
-2. ```$ cd Botelicious/Discord```
+4. ```$ nano app.js``` and fill in the empty field for ```token: ''``` at line 128.<br>
+5. **Optional:** ```$ nano app.js``` and fill in the empty fields for ```apiKey = ''``` and ```apiSecret = ''``` at line 166-167 if you want to get Bitmex working.<br>
+
+#### Discord<br>
+2. ```$ cd Botelicious/Discord```<br>
 3. ```$ nano config.json``` and fill in the empty fields for ```"token"``` and ```"url"```. You may change the prefix too if you like.<br>
 
 **Sample config.json**
