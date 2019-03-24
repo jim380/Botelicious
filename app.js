@@ -25,10 +25,11 @@
 //  
 //  ============================================================================
 const fetch = require('node-fetch');
+const config = require("./config.json");
 
 const TeleBot = require('telebot');
 const bot = new TeleBot({
-  token: '',
+  token: `${config.token}`,
   usePlugins: ['namedButtons','askUser'],
   pluginFolder: '../plugins/',
   pluginConfig: {
@@ -54,7 +55,7 @@ function makeRequest(verb, endpoint, data = {}) {
 
   if (verb !== 'GET') requestOptions.body = postBody;
 
-  const url = '' + endpoint;
+  const url = `${config.node.url}`+ `:${config.node.ports[2]}` + endpoint;
 
   // fetch(url, requestOptions)
   // .then(res => res.json())
@@ -76,13 +77,16 @@ const handleErrors = (e,chatid) => {
   }
 }
 
-//------------------------------//
-//---------Bot Commands---------//
-//------------------------------//
-// node info
+//-----------------------------------------------------------------------------------------//
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.GET-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.//
+//-----------------------------------------------------------------------------------------//
+
+//----------------------------------------------------//
+//                       node info                    //
+//----------------------------------------------------//
 bot.on('/node_info', async msg => {
   //const addr = msg.text;
-  makeRequest('GET', 'node_info', {})
+  makeRequest('GET', '/node_info', {})
   .then(res => res.json())
   .then(async response => {
     //console.log(response);
@@ -92,28 +96,32 @@ bot.on('/node_info', async msg => {
   .catch(error => handleErrors(error, msg.from.id));
 });
 
-// staking pool
+//----------------------------------------------------//
+//                     staking pool                   //
+//----------------------------------------------------//
 bot.on('/staking_pool', async msg => {
   //const addr = msg.text;
-  makeRequest('GET', 'staking/pool', {})
+  makeRequest('GET', '/staking/pool', {})
   .then(res => res.json())
   .then(async response => {
     //console.log(response);
     await bot.sendMessage(msg.from.id,`\`Bonded\`: ${response.bonded_tokens}\n`
-    + `\`Un-bonded\`: ${response.not_bonded_tokens}\n`, {parseMode: 'Markdown'})
+    + `\`Unbonded\`: ${response.not_bonded_tokens}\n`, {parseMode: 'Markdown'})
     
   })
   .catch(error => handleErrors(error, msg.from.id));
 });
 
-// votes
+//----------------------------------------------------//
+//                      votes                         //
+//----------------------------------------------------//
 bot.on('/votes', async (msg) => {
   return bot.sendMessage(msg.chat.id, `Please provide a proposal ID.`, {ask: 'propID'});
 });
 
 bot.on('ask.propID', async msg => {
   const id = msg.text;
-  makeRequest('GET', `gov/proposals/${id}/votes`, {})
+  makeRequest('GET', `/gov/proposals/${id}/votes`, {})
   .then(res => res.json())
   .then(async response => {
     console.log(response);
@@ -123,7 +131,9 @@ bot.on('ask.propID', async msg => {
   .catch(error => handleErrors(error, msg.from.id));
 });
 
-// balance
+//----------------------------------------------------//
+//                       balance                      //
+//----------------------------------------------------//
 bot.on('/balance', async (msg) => {
   return bot.sendMessage(msg.chat.id, `Please provide an account address.`, {ask: 'accountAddrBalance'});
 });
@@ -140,15 +150,20 @@ bot.on('ask.accountAddrBalance', async msg => {
   .catch(error => handleErrors(error, msg.from.id));
 });
 
-// POST test
-// submit proposal
+//-----------------------------------------------------------------------------------------//
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-POST.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-//
+//-----------------------------------------------------------------------------------------//
+
+//----------------------------------------------------//
+//                   submit proposal                  //
+//----------------------------------------------------//
 bot.on('/proposal', async (msg) => {
   return bot.sendMessage(msg.chat.id, `Please provide an account address.`, {ask: 'accountAddrProp'});
 });
 
 bot.on('ask.accountAddrProp', async msg => {
   const addr = msg.text;
-  makeRequest('POST', `gov/proposals`, {
+  makeRequest('POST', `/gov/proposals`, {
     "base_req": {
       "from": `${addr}`,
       "memo": "test",
@@ -178,21 +193,23 @@ bot.on('ask.accountAddrProp', async msg => {
   })
   .then(res => res.json())
   .then(async response => {
-    console.log(JSON.stringify(response));
-    //await bot.sendMessage(msg.from.id,`${response[0].amount} \`${response[0].denom}\``, {parseMode: 'Markdown'})
+    //console.log(JSON.stringify(response));
+    await bot.sendMessage(msg.from.id,`${JSON.stringify(response)}`, {parseMode: 'Markdown'})
     
   })
   .catch(error => handleErrors(error, msg.from.id));
 });
 
-// submit delegation
+//----------------------------------------------------//
+//                  submit delegation                 //
+//----------------------------------------------------//
 bot.on('/delegate', async (msg) => {
   return bot.sendMessage(msg.chat.id, `Please provide an address you'd like to delegate from.`, {ask: 'accountAddrDelegate'});
 });
 
 bot.on('ask.accountAddrDelegate', async msg => {
   const addr = msg.text;
-  makeRequest('POST', `staking/delegators/${addr}/delegations`, {
+  makeRequest('POST', `/staking/delegators/${addr}/delegations`, {
     "base_req": {
       "from": `${addr}`,
       "memo": "test",
@@ -218,13 +235,66 @@ bot.on('ask.accountAddrDelegate', async msg => {
   })
   .then(res => res.json())
   .then(async response => {
-    console.log(JSON.stringify(response));
-    //await bot.sendMessage(msg.from.id,`${response[0].amount} \`${response[0].denom}\``, {parseMode: 'Markdown'})
+    //console.log(JSON.stringify(response));
+    await bot.sendMessage(msg.from.id,`${JSON.stringify(response)}`, {parseMode: 'Markdown'})
     
   })
   .catch(error => handleErrors(error, msg.from.id));
 });
 
+//----------------------------------------------------//
+//                      broadcast txs                 //
+//----------------------------------------------------//
+// tx json pasted in here has been executed
+bot.on('/txs', async msg => {
+  //const addr = msg.text;
+  makeRequest('POST', `/txs`, 
+  {
+    "type": "auth/StdTx",
+    "tx": {
+       "msg": [
+          {
+             "type": "cosmos-sdk/MsgSubmitProposal",
+             "value": {
+                "title": "test",
+                "description": "test",
+                "proposal_type": "Text",
+                "proposer": "cosmos1pjmngrwcsatsuyy8m3qrunaun67sr9x78qhlvr",
+                "initial_deposit": null
+             }
+          }
+       ],
+       "fee": {
+          "amount": [
+             {
+                "denom": "muon",
+                "amount": "5000"
+             }
+          ],
+          "gas": "200000"
+       },
+       "signatures": [
+          {
+             "pub_key": {
+                "type": "tendermint/PubKeySecp256k1",
+                "value": "AlX825sr2FmvR8R/sizJMm2zuY74AxBrL+tbgrGPG+JN"
+             },
+             "signature": "aOarcMcG2pGgvuK5A5EU0uKRspUlbn/GYdumAn0c255B6iLmBNTUn8R1G5jIaLVrCmumkJPS4ItjNW4vgqaiQg=="
+          }
+       ],
+       "memo": ""
+    },
+    "return": "block",
+ }
+ )
+  .then(res => res.json())
+  .then(async response => {
+    //console.log(JSON.stringify(response));
+    await bot.sendMessage(msg.from.id,`${JSON.stringify(response)}`, {parseMode: 'Markdown'})
+    
+  })
+  .catch(error => handleErrors(error, msg.from.id));
+});
 
 
 bot.connect();
