@@ -35,7 +35,7 @@ const BUTTONS = {
       command: '/mex'
   },
   cosmos: {
-      label: 'Ø IRISnet',
+      label: 'Ø Cosmos',
       command: '/cosmos'
   },
   hide: {
@@ -112,7 +112,7 @@ const BUTTONS = {
   },
   nodeBalance: {
     label: 'Balance',
-    command: '/node_balance'
+    command: '/account_balance'
   },
   nodeKeys: {
     label: 'Keys',
@@ -532,10 +532,14 @@ const httpUtil = new HttpUtil();
 //Custom error handling
 const handleErrors = (e,chatid) => {
   //console.log(e);
-  if (e.name == 'SyntaxError') {
-    bot.sendMessage(chatid,`Oops... unexpected response type!`);  
+  if (e.name == 'TypeError') {
+    console.error(e);
+    //bot.sendMessage(chatid,`${e}`); 
+    bot.sendMessage(chatid,`Address can't be found on the current chain.`);
   } else {
-    bot.sendMessage(chatid,`Ooops... connection issue!`);
+    console.error(e);
+    //bot.sendMessage(chatid,`${e}`);
+    bot.sendMessage(chatid,`oops...an error occurred`);
   }
 }
 
@@ -612,7 +616,8 @@ bot.on(['/lcd_queries'], msg => {
   //const inst = props.match[1];
   //if (inst === "queries") {
     let replyMarkup = bot.keyboard([
-      [BUTTONS.nodeBalance.label,BUTTONS.nodeKeys.label],
+      // [BUTTONS.nodeBalance.label,BUTTONS.nodeKeys.label, BUTTONS.nodeBalance.label]
+      ['/account_balance', '/delegator_rewards', '/validator_rewards'],
       [BUTTONS.backCosmos.label, BUTTONS.home.label, BUTTONS.hide.label]
   ], {resize: true});
 
@@ -687,6 +692,7 @@ const sendConsensusState = (url, port, chatid) => {
   httpUtil.httpGet(url, port, '/dump_consensus_state')
     .then(data => JSON.parse(data))
     .then(json => { 
+      //console.log(json);
       let roundState = json.result.round_state
       bot.sendMessage(chatid,`\`Round State Height\`: ${roundState.height}\n`
         + `\`Round\`: ${roundState.round}\n`
@@ -705,6 +711,7 @@ const sendConsensusParams = (url, port, chatid) => {
         httpUtil.httpGet(config.cosmos_node.url, config.cosmos_node.ports[0], `/consensus_params?height=${latestBlockHeight}`)
         .then(data => JSON.parse(data))
         .then(json => {
+          //console.log(json);
           bot.sendMessage(chatid,`\`Height\`: ${json.result.block_height}\n`
           + `\`Block Size\`: ${json.result.consensus_params.block_size.max_bytes}\n`
           + `\`Evidence Max Age\`: ${json.result.consensus_params.evidence.max_age}\n`
@@ -719,6 +726,7 @@ const sendValidatorsCt = (url, port, chatid) => {
   httpUtil.httpGet(url, port, '/status')
     .then(data => JSON.parse(data))
     .then(json => {
+      console.log(json);
       let latestBlockHeight = json.result.sync_info.latest_block_height
       if (latestBlockHeight == 0) {
         // get validators from "/dump_consensus_state"
@@ -774,10 +782,11 @@ const sendValidators = (url, port, chatid) => {
 }
 
 // balance
-const sendBalance = (url, port, chatid) => {
-  httpUtil.httpGet(url, port, `/bank/balances/${args}`)
+const sendBalance = (addr, url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/bank/balances/${addr}`)
   .then(data => JSON.parse(data))
   .then(async json => {
+    console.log(json);
     let i = 1;
     for (let el of json) {
       await bot.sendMessage(chatid,`(${i})\n\`${el.amount}\` ${el.denom}`,{parseMode: 'Markdown'});
@@ -803,6 +812,29 @@ const sendKeys  = (url, port, chatid) => {
     }) 
     .catch(e => handleErrors(e, chatid));
 }
+
+// delegator rewards
+const sendDelRewards = (addr, url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/distribution/delegators/${addr}/rewards`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      console.log(json);
+      await bot.sendMessage(chatid,`${json[0].amount}\` ${json[0].denom}\``,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// valiator rewards
+const sendValRewards = (addr, url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/distribution/validators/${addr}/rewards`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      console.log(json);
+      await bot.sendMessage(chatid,`${json[0].amount}\` ${json[0].denom}\``,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
 // tx by hash
 const sendTxByHash  = (hash, url, port, chatid) => {
   httpUtil.httpGet(url, port, `/tx?hash=0x${hash}`)
@@ -916,14 +948,53 @@ bot.on('/consensus_params', (msg) => {
 });
 
 // balance
-  bot.on('/node_balance', (msg) => {
-  args = 'cosmos1pjmngrwcsatsuyy8m3qrunaun67sr9x78qhlvr';
-        sendBalance(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
+bot.on('/account_balance', async (msg) => {
+  return bot.sendMessage(msg.chat.id, `Please provide an address.\nExample: \`cosmos1j3nlv8wcfst2mezkny4w2up76wfgnkq744ezus\``, {ask: 'accountBalance'}, {parseMode: 'Markdown'});
+});
+
+bot.on('ask.accountBalance', async msg => {
+  const addr = msg.text;
+  const id = msg.chat.id;
+  if (addr.length !== 45) {
+    return bot.sendMessage(id, 'Address is invalid!');
+  } else {
+    sendBalance (addr, url=config.cosmos_node.url, port=config.cosmos_node.ports[2], id)
+  }
 });
 
 // keys
   bot.on('/node_keys', (msg) => {
     sendKeys(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
+});
+
+// delegator rewards
+bot.on('/delegator_rewards', async (msg) => {
+  return bot.sendMessage(msg.chat.id, `Please provide a delagator address.\nExample: \`cosmos1j3nlv8wcfst2mezkny4w2up76wfgnkq744ezus\``, {ask: 'delegatorRewwards'}, {parseMode: 'Markdown'});
+});
+
+bot.on('ask.delegatorRewwards', async msg => {
+  const addr = msg.text;
+  const id = msg.chat.id;
+  if (addr.length !== 45) {
+    return bot.sendMessage(id, 'Address is invalid!');
+  } else {
+    sendDelRewards (addr, url=config.cosmos_node.url, port=config.cosmos_node.ports[2], id)
+  }
+});
+
+// validator rewards
+bot.on('/validator_rewards', async (msg) => {
+  return bot.sendMessage(msg.chat.id, `Please provide a validator address.\nExample: \`cosmosvaloper1j3nlv8wcfst2mezkny4w2up76wfgnkq7spdhsr\``, {ask: 'validatorRewwards'}, {parseMode: 'Markdown'});
+});
+
+bot.on('ask.validatorRewwards', async msg => {
+  const addr = msg.text;
+  const id = msg.chat.id;
+  if (addr.length !== 52) {
+    return bot.sendMessage(id, 'Address is invalid!');
+  } else {
+    sendValRewards (addr, url=config.cosmos_node.url, port=config.cosmos_node.ports[2], id)
+  }
 });
 
 // tx by hash
@@ -989,7 +1060,7 @@ bot.on('ask.valAddr', msg => {
   const id = msg.chat.id;
 
   if (valAddr.length !== 40) {
-    return bot.sendMessage(id, 'Address is not valid!');
+    return bot.sendMessage(id, 'Address is invalid!');
   }
 
   if (isEmpty(subscribedValidators[valAddr])) {
@@ -1042,7 +1113,7 @@ const removeValidator = (address) => {
 
 bot.on('ask.valAddrUnsub', msg => {
   if (msg.text.length !== 40) {
-    return bot.sendMessage(msg.chat.id, 'Address is not valid!');
+    return bot.sendMessage(msg.chat.id, 'Address is invalid!');
   }
   removeValidator(msg.text);
   // return bot.sendMessage(msg.chat.id, 'Done!');
