@@ -13,6 +13,8 @@ ENV PATH /usr/src/Botelicious_tel/node_modules/.bin:$PATH
 COPY package.json /usr/src/Botelicious_tel
 RUN npm install
 COPY . /usr/src/Botelicious_tel
+COPY data-util.js /usr/src
+COPY http-util.js /usr/src
 
 # Start
 CMD node app.js
