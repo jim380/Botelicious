@@ -618,6 +618,8 @@ bot.on(['/lcd_queries'], msg => {
     let replyMarkup = bot.keyboard([
       // [BUTTONS.nodeBalance.label,BUTTONS.nodeKeys.label, BUTTONS.nodeBalance.label]
       ['/account_balance', '/delegator_rewards', '/validator_rewards'],
+      ['/staking_pool','/staking_params', '/minting_inflation'],
+      ['/slashing_params', '/minting_params', '/validator_signing'],
       [BUTTONS.backCosmos.label, BUTTONS.home.label, BUTTONS.hide.label]
   ], {resize: true});
 
@@ -702,7 +704,7 @@ const sendConsensusState = (url, port, chatid) => {
     .catch(e => handleErrors(e, chatid));   
 }
 
-// consensus params
+// consensus params - needs to add height as argument while querying
 const sendConsensusParams = (url, port, chatid) => {
   httpUtil.httpGet(url, port, '/status')
     .then(data => JSON.parse(data))
@@ -726,7 +728,7 @@ const sendValidatorsCt = (url, port, chatid) => {
   httpUtil.httpGet(url, port, '/status')
     .then(data => JSON.parse(data))
     .then(json => {
-      console.log(json);
+      //console.log(json);
       let latestBlockHeight = json.result.sync_info.latest_block_height
       if (latestBlockHeight == 0) {
         // get validators from "/dump_consensus_state"
@@ -786,12 +788,8 @@ const sendBalance = (addr, url, port, chatid) => {
   httpUtil.httpGet(url, port, `/bank/balances/${addr}`)
   .then(data => JSON.parse(data))
   .then(async json => {
-    console.log(json);
-    let i = 1;
-    for (let el of json) {
-      await bot.sendMessage(chatid,`(${i})\n\`${el.amount}\` ${el.denom}`,{parseMode: 'Markdown'});
-      i++;
-    }
+    //console.log(json);
+    await bot.sendMessage(chatid,`${((json[0].amount)/1e6).toFixed(2)} \`atom\``,{parseMode: 'Markdown'});
   })
   .catch(e => handleErrors(e, chatid));
 }
@@ -818,19 +816,110 @@ const sendDelRewards = (addr, url, port, chatid) => {
   httpUtil.httpGet(url, port, `/distribution/delegators/${addr}/rewards`)
   .then(data => JSON.parse(data))
   .then(async json => {
-      console.log(json);
-      await bot.sendMessage(chatid,`${json[0].amount}\` ${json[0].denom}\``,{parseMode: 'Markdown'});
+      //console.log(json);
+      await bot.sendMessage(chatid,`${((json[0].amount)/1e6).toFixed(2)} \`atom\``,{parseMode: 'Markdown'});
   })
   .catch(e => handleErrors(e, chatid));
 }
 
 // valiator rewards
 const sendValRewards = (addr, url, port, chatid) => {
-  httpUtil.httpGet(url, port, `/distribution/validators/${addr}/rewards`)
+  httpUtil.httpGet(url, port, `/distribution/validators/${addr}`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      //console.log(json);
+      await bot.sendMessage(chatid,`\`Self-bond rewards:\` ${(json.self_bond_rewards[0].amount/1e6).toFixed(2)} \`atom\`\n`
+      //+`\`Commission\`: ${json.val_commission[0].amount}\`${json.val_commission[0].denom}\``
+      +`\`Commission:\` ${(json.val_commission[0].amount/1e6).toFixed(2)} \`atom\``
+      ,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// valiator signing-info
+const sendValSigningInfo = (addr, url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/slashing/validators/${addr}/signing_info`)
   .then(data => JSON.parse(data))
   .then(async json => {
       console.log(json);
-      await bot.sendMessage(chatid,`${json[0].amount}\` ${json[0].denom}\``,{parseMode: 'Markdown'});
+      let jailed = json.jailed_until=='1970-01-01T00:00:00Z' ? 0 : 1;
+      await bot.sendMessage(chatid,`\`Start height\`: ${json.start_height}\n`
+      +`\`Jailed:\` ${jailed ? 'Yes' : 'No'}\n`
+      + `\`Tombstoned\`: ${json.tombstoned}\n`
+      +`\`Missied blocks\`: ${json.missed_blocks_counter}`
+      ,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// slashing params
+const sendSlashingParams = (url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/slashing/parameters`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      //console.log(json);
+      await bot.sendMessage(chatid,`\`Max evidence age:\` ${json.max_evidence_age/(1e9*24*3600)} days\n`
+      +`\`Downtime jail duration:\` ${json.downtime_jail_duration/1e9} seconds\n`
+      +`\`Double sign slashing fraction:\` ${(json.slash_fraction_double_sign*100).toFixed(2)}%\n`
+      +`\`Downtime slashing fraction:\` ${(json.slash_fraction_downtime*100).toFixed(2)}%\n`
+      ,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// minting params
+const sendMintingParams = (url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/minting/parameters`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      //console.log(json);
+      await bot.sendMessage(chatid,`\`Inflation rate:\` ${(json.inflation_rate_change*100).toFixed(1)}%\n`
+      +`\`Inflation max rate:\` ${(json.inflation_max*100).toFixed(1)}%\n`
+      +`\`Inflation min rate:\` ${(json.inflation_min*100).toFixed(1)}%\n`
+      +`\`Goal bonded:\` ${json.goal_bonded*100}%\n`
+      + `\`Blocks per year:\` ${json.blocks_per_year}`
+      ,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// minting inflatioin
+const sendMintingInflation = (url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/minting/inflation`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      //console.log(json);
+      await bot.sendMessage(chatid,`${(json*100).toFixed(1)}%`
+      ,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// staking pool
+const sendStakingPool = (url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/staking/pool`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      //console.log(json);
+      let bonded = json.bonded_tokens/1e6;
+      let notBonded = json.not_bonded_tokens/1e6;
+      await bot.sendMessage(chatid,`\`Bonded:\` ${bonded.toFixed(2)} atom (${((bonded/(bonded+notBonded))*100).toFixed(2)}%)\n`
+      +`\`Not bonded:\` ${notBonded.toFixed(2)} atom (${((notBonded/(bonded+notBonded))*100).toFixed(2)}%)\n`
+      ,{parseMode: 'Markdown'});
+  })
+  .catch(e => handleErrors(e, chatid));
+}
+
+// staking params
+const sendStakingParams = (url, port, chatid) => {
+  httpUtil.httpGet(url, port, `/staking/parameters`)
+  .then(data => JSON.parse(data))
+  .then(async json => {
+      //console.log(json);
+      await bot.sendMessage(chatid,`\`Unbonding time:\` ${json.unbonding_time/(1e9*24*3600)} days\n`
+      +`\`Max validators:\` ${json.max_validators}\n`
+      +`\`Max entries:\` ${json.max_entries}\n`
+      ,{parseMode: 'Markdown'});
   })
   .catch(e => handleErrors(e, chatid));
 }
@@ -949,7 +1038,7 @@ bot.on('/consensus_params', (msg) => {
 
 // balance
 bot.on('/account_balance', async (msg) => {
-  return bot.sendMessage(msg.chat.id, `Please provide an address.\nExample: \`cosmos1j3nlv8wcfst2mezkny4w2up76wfgnkq744ezus\``, {ask: 'accountBalance'}, {parseMode: 'Markdown'});
+  return bot.sendMessage(msg.chat.id, `Please provide an address.\nExample: \`cosmos1ey69r37gfxvxg62sh4r0ktpuc46pzjrmz29g45\``, {ask: 'accountBalance'}, {parseMode: 'Markdown'});
 });
 
 bot.on('ask.accountBalance', async msg => {
@@ -969,7 +1058,7 @@ bot.on('ask.accountBalance', async msg => {
 
 // delegator rewards
 bot.on('/delegator_rewards', async (msg) => {
-  return bot.sendMessage(msg.chat.id, `Please provide a delagator address.\nExample: \`cosmos1j3nlv8wcfst2mezkny4w2up76wfgnkq744ezus\``, {ask: 'delegatorRewwards'}, {parseMode: 'Markdown'});
+  return bot.sendMessage(msg.chat.id, `Please provide a delagator address.\nExample: \`cosmos1ey69r37gfxvxg62sh4r0ktpuc46pzjrmz29g45\``, {ask: 'delegatorRewwards'}, {parseMode: 'Markdown'});
 });
 
 bot.on('ask.delegatorRewwards', async msg => {
@@ -984,7 +1073,7 @@ bot.on('ask.delegatorRewwards', async msg => {
 
 // validator rewards
 bot.on('/validator_rewards', async (msg) => {
-  return bot.sendMessage(msg.chat.id, `Please provide a validator address.\nExample: \`cosmosvaloper1j3nlv8wcfst2mezkny4w2up76wfgnkq7spdhsr\``, {ask: 'validatorRewwards'}, {parseMode: 'Markdown'});
+  return bot.sendMessage(msg.chat.id, `Please provide a validator address.\nExample: \`cosmosvaloper14k4pzckkre6uxxyd2lnhnpp8sngys9m6hl6ml7\``, {ask: 'validatorRewwards'}, {parseMode: 'Markdown'});
 });
 
 bot.on('ask.validatorRewwards', async msg => {
@@ -995,6 +1084,46 @@ bot.on('ask.validatorRewwards', async msg => {
   } else {
     sendValRewards (addr, url=config.cosmos_node.url, port=config.cosmos_node.ports[2], id)
   }
+});
+
+// validator signing-info
+bot.on('/validator_signing', async (msg) => {
+  return bot.sendMessage(msg.chat.id, `Please provide a validator pubkey.\nExample: \`cosmosvalconspub1zcjduepqay5ldqdmyzy9qfr93enxmm7cwsd5aafz6huqvczytqahpw4twa8qvtrwhv\``, {ask: 'validatorSigning'}, {parseMode: 'Markdown'});
+});
+
+bot.on('ask.validatorSigning', async msg => {
+  const addr = msg.text;
+  const id = msg.chat.id;
+  if (addr.length !== 83) {
+    return bot.sendMessage(id, 'Address is invalid!');
+  } else {
+    sendValSigningInfo (addr, url=config.cosmos_node.url, port=config.cosmos_node.ports[2], id)
+  }
+});
+
+// slashing params
+bot.on('/slashing_params', async (msg) => {
+  sendSlashingParams(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
+});
+
+// minting params
+bot.on('/minting_params', async (msg) => {
+  sendMintingParams(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
+});
+
+// minting inflation
+bot.on('/minting_inflation', async (msg) => {
+  sendMintingInflation(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
+});
+
+// staking pool
+bot.on('/staking_pool', async (msg) => {
+  sendStakingPool(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
+});
+
+// staking params
+bot.on('/staking_params', async (msg) => {
+  sendStakingParams(url=config.cosmos_node.url, port=config.cosmos_node.ports[2], chatid=msg.chat.id);
 });
 
 // tx by hash
