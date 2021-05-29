@@ -9,7 +9,7 @@
     "discord.js": "^11.4.2",
     "got": "^9.2.1",
     "node-fetch": "^2.2.0",
-    "ws": "^6.1.2"
+    "ws": "^7.4.6"
   },
   "devDependencies": {},
   "scripts": {
